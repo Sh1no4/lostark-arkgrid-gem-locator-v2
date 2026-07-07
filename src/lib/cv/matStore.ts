@@ -16,7 +16,9 @@ import { type MatchingAtlas, generateMatchingAtlas } from './atlas';
 import { getCv } from './cvRuntime';
 import type { CvMat } from './types';
 
-export type KeyWillPower = '3' | '4' | '5' | '6' | '7' | '8' | '9';
+export type KeyBaseWillPower = '3' | '4' | '5' | '6' | '7' | '8' | '9';
+export type KeyAlternateWillPower = '3_1' | '4_1' | '5_1' | '6_1' | '7_1' | '8_1';
+export type KeyWillPower = KeyBaseWillPower | KeyAlternateWillPower;
 export type KeyCorePoint = '1' | '2' | '3' | '4' | '5';
 export type KeyOptionString = ArkGridGemOptionName;
 export type KeyOptionLevel = '1' | '2' | '3' | '4' | '5';
@@ -77,6 +79,63 @@ function generateSingleMatchingAtlas<K extends string>(key: K, mat: CvMat): Matc
   return generateMatchingAtlas({ [key]: mat } as Record<K, CvMat>);
 }
 
+const baseWillPowerTemplateNames = ['3', '4', '5', '6', '7', '8', '9'] as const;
+
+const alternateRuCnWillPowerTemplates = [
+  { key: '3_1', fileName: '3_1.png' },
+  { key: '4_1', fileName: '4_1.png' },
+  { key: '5_1', fileName: '5_1.png' },
+  { key: '6_1', fileName: '6_1.png' },
+  { key: '7_1', fileName: '7_1.png' },
+  { key: '8_1', fileName: '8_1.png' },
+] as const satisfies readonly { key: KeyAlternateWillPower; fileName: string }[];
+
+function buildWillPowerTemplates(
+  locale: GemRecognitionLocale,
+  mats: Partial<Record<string, CvMat>>
+): Record<KeyWillPower, CvMat> {
+  const willPowerTemplates = {} as Record<KeyWillPower, CvMat>;
+
+  for (const templateName of baseWillPowerTemplateNames) {
+    willPowerTemplates[templateName] = mats[`${templateName}.png`];
+  }
+
+  if (locale === 'ru_cn') {
+    for (const alternateTemplate of alternateRuCnWillPowerTemplates) {
+      const alternateTemplateMat = mats[alternateTemplate.fileName];
+      if (alternateTemplateMat) {
+        willPowerTemplates[alternateTemplate.key] = alternateTemplateMat;
+      }
+    }
+  }
+
+  return willPowerTemplates;
+}
+
+function buildTopWillPowerTemplates(
+  locale: GemRecognitionLocale,
+  mats: Partial<Record<string, CvMat>>
+): Record<KeyWillPower, CvMat> {
+  if (locale !== 'ru_cn') {
+    return buildWillPowerTemplates(locale, mats);
+  }
+
+  const topWillPowerTemplates = {} as Record<KeyWillPower, CvMat>;
+
+  for (const alternateTemplate of alternateRuCnWillPowerTemplates) {
+    const alternateTemplateMat = mats[alternateTemplate.fileName];
+    if (alternateTemplateMat) {
+      topWillPowerTemplates[alternateTemplate.key] = alternateTemplateMat;
+    }
+  }
+
+  return topWillPowerTemplates;
+}
+
+export function normalizeWillPowerKey(key: KeyWillPower): KeyBaseWillPower {
+  return key.replace('_1', '') as KeyBaseWillPower;
+}
+
 export async function loadGemAsset() {
   const gt = await loadGemTemplates();
 
@@ -103,15 +162,16 @@ export async function loadGemAsset() {
   const atlasWillPower = supportedGemRecognitionLocales.reduce(
     (acc, locale) => {
       const mats = gt[locale];
-      acc[locale] = generateMatchingAtlas({
-        3: mats['3.png'],
-        4: mats['4.png'],
-        5: mats['5.png'],
-        6: mats['6.png'],
-        7: mats['7.png'],
-        8: mats['8.png'],
-        9: mats['9.png'],
-      });
+      acc[locale] = generateMatchingAtlas(buildWillPowerTemplates(locale, mats));
+      return acc;
+    },
+    {} as Record<GemRecognitionLocale, MatchingAtlas<KeyWillPower>>
+  );
+
+  const atlasTopWillPower = supportedGemRecognitionLocales.reduce(
+    (acc, locale) => {
+      const mats = gt[locale];
+      acc[locale] = generateMatchingAtlas(buildTopWillPowerTemplates(locale, mats));
       return acc;
     },
     {} as Record<GemRecognitionLocale, MatchingAtlas<KeyWillPower>>
@@ -184,6 +244,7 @@ export async function loadGemAsset() {
     atlasGemAttr,
     altasGemImage,
     atlasWillPower,
+    atlasTopWillPower,
     atlasCorePoint,
     atlasOptionName,
     atlasOptionLevel,

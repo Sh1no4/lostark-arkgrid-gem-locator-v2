@@ -5,7 +5,12 @@ import { type ArkGridGem, determineGemGradeByGem } from '../models/arkGridGems';
 import type { MatchingAtlas } from './atlas';
 import { getCv, initOpenCv } from './cvRuntime';
 import { showMatch } from './debug';
-import { type KeyOptionLevel, type KeyOptionString, loadGemAsset } from './matStore';
+import {
+  type KeyOptionLevel,
+  type KeyOptionString,
+  loadGemAsset,
+  normalizeWillPowerKey,
+} from './matStore';
 import { type MatchingResult, getBestMatch } from './matcher';
 import type { CaptureWorkerRequest, CaptureWorkerResponse, CvMat } from './types';
 
@@ -113,16 +118,7 @@ class FrameProcessor {
   }
 
   private getRuCnRecognitionLayout(): RecognitionLayout {
-    return {
-      gemAttr: { x: -190, y: 88, width: 236, height: 36 },
-      row: { x: -287, y: 213, stepY: 63 },
-      gemName: { x: 2, y: 8, width: 42, height: 42 },
-      willPower: { x: 62, y: -2, width: 24, height: 32 },
-      corePoint: { x: 62, y: 28, width: 24, height: 32 },
-      optionName: { x: 118, y: -2, width: 220, height: 34 },
-      optionLevel: { gapX: 14, fallbackX: 72, width: 64, height: 34 },
-      optionYOffset: { top: 0, bottom: 30 },
-    };
+    return this.getZhCnRecognitionLayout();
   }
 
   private getRecognitionLayout(locale: GemRecognitionLocale): RecognitionLayout {
@@ -143,10 +139,17 @@ class FrameProcessor {
   }
 
   private getOptionLevelThreshold(locale: GemRecognitionLocale, detectionMargin: number) {
-    if (locale === 'zh_cn') {
+    if (locale === 'zh_cn' || locale === 'ru_cn') {
       return 0.72 - detectionMargin;
     }
     return this.thresholdSet.optionLevel - detectionMargin;
+  }
+
+  private getWillPowerThreshold(locale: GemRecognitionLocale, detectionMargin: number) {
+    if (locale === 'ru_cn') {
+      return 0.72 - detectionMargin;
+    }
+    return this.thresholdSet.willPower - detectionMargin;
   }
 
   async init() {
@@ -377,8 +380,8 @@ class FrameProcessor {
               width: layout.willPower.width,
               height: layout.willPower.height,
             },
-            atlas: this.loadedAsset.atlasWillPower[currentLocale],
-            threshold: this.thresholdSet.willPower - detectionMargin,
+            atlas: this.loadedAsset.atlasTopWillPower[currentLocale],
+            threshold: this.getWillPowerThreshold(currentLocale, detectionMargin),
           },
           resizedFrame,
           debugCtx
@@ -496,7 +499,7 @@ class FrameProcessor {
           const gem: ArkGridGem = {
             gemAttr: gemAttr.key,
             name: gemName.key,
-            req: Number(willPower.key),
+            req: Number(normalizeWillPowerKey(willPower.key)),
             point: Number(corePoint.key),
             option1: {
               optionType: optionTop.optionName.key,
