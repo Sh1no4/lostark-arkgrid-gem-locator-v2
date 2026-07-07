@@ -143,7 +143,7 @@
   let showDiagnostics = $state<boolean>(false);
   let showRecognitionLocaleMenu = $state<boolean>(false);
   let detectionMargin = $state<number>(0);
-  let recognitionLocaleMenuElement: HTMLDivElement | null = null;
+  let recognitionLocaleMenuElement = $state<HTMLDivElement | null>(null);
 
   let _captureController: CaptureController | null = null;
   let _prevGem: string | null = null;
@@ -470,8 +470,8 @@
   {/if}
   <div class="recognition-header">
     <div class="title">
-      <span>{LTitle[locale]}</span>
       <span class="status-dot" class:online={isRecording} class:offline={!isRecording}></span>
+      <span class="recognition-title-text">{LTitle[locale]}</span>
       <span class="tooltip">
         <i class="fa-solid fa-circle-info info-icon"></i>
         <span class="tooltip-text">{LSupportedClient}</span>
@@ -588,8 +588,10 @@
   }
 
   .recognition-panel {
+    box-sizing: border-box;
     width: 100%;
     max-width: none;
+    min-width: 0;
     padding: 0;
     background: transparent;
     border: none;
@@ -597,6 +599,9 @@
   }
 
   .recognition-header {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
@@ -605,16 +610,33 @@
 
   .recognition-header > div {
     display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
+    gap: 0;
   }
 
   .recognition-header .title {
+    box-sizing: border-box;
+    width: 100%;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.55rem;
+    min-width: 0;
+    padding: 0.45rem 0.6rem;
+    border: 1px solid var(--reference-border, var(--border));
+    border-radius: 999px;
+    background: color-mix(
+      in srgb,
+      var(--reference-muted, var(--card-inner)) 40%,
+      var(--reference-card, var(--card))
+    );
     font-size: 1.1rem;
     font-weight: 800;
+  }
+
+  .recognition-title-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   /* .panel > .title > .title-with-dot {
@@ -627,11 +649,12 @@
     bottom: -200%;
   }
   .status-dot {
-    width: 12px;
-    height: 12px;
+    width: 0.72rem;
+    height: 0.72rem;
+    flex: 0 0 0.72rem;
     border-radius: 50%;
-    display: inline-block;
-    vertical-align: middle;
+    display: block;
+    box-shadow: 0 0 0 0.18rem color-mix(in srgb, currentColor 12%, transparent);
   }
   .status-dot.online {
     background-color: #22c55e; /* 녹색 */
@@ -641,6 +664,10 @@
   }
 
   .panel > .recognition-content {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     gap: 1rem;
@@ -649,6 +676,9 @@
 
   .recognition-control-card {
     box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
     border: 1px solid var(--border);
     border-radius: 0.75rem;
     background: var(--card);
@@ -671,7 +701,10 @@
   }
 
   .recognition-locale-row {
+    box-sizing: border-box;
     width: min(100%, 48rem);
+    max-width: 100%;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     align-items: stretch;
@@ -692,6 +725,7 @@
     display: flex;
     align-items: flex-start;
     gap: 0.65rem;
+    max-width: 100%;
     min-width: 0;
   }
 
@@ -710,6 +744,7 @@
     display: flex;
     flex-direction: column;
     gap: 0.12rem;
+    max-width: 100%;
     min-width: 0;
   }
 
@@ -724,16 +759,21 @@
     font-size: 0.75rem;
     font-weight: 600;
     line-height: 1.25;
+    overflow-wrap: anywhere;
   }
 
   .recognition-locale-inline-menu {
+    box-sizing: border-box;
     position: relative;
     width: 100%;
+    max-width: 100%;
     min-width: 0;
   }
 
   .recognition-locale-value {
+    box-sizing: border-box;
     width: 100%;
+    max-width: 100%;
     min-height: 2.35rem;
     display: flex;
     align-items: center;

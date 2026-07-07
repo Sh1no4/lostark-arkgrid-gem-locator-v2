@@ -19,7 +19,7 @@
   let { attr, ctype, core = $bindable() }: Props = $props();
   const targetPoints = [20, 19, 18, 17, 14, 10, 0];
   let showGoalPointMenu = $state(false);
-  let goalPointMenuElement: HTMLDivElement | null = null;
+  let goalPointMenuElement = $state<HTMLDivElement | null>(null);
 
   $effect(() => {
     if (!core) {

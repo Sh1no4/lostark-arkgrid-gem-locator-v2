@@ -67,38 +67,47 @@
 
 {#if swapData.length > 0}
   <div class="root">
-    <div class="header">
-      <div class="title">{LTitle}</div>
-      <div class="count">{LCount}</div>
-    </div>
-    <div class="list">
-      {#each swapData as entry}
-        <div class="entry">
-          <div class="core-name">{formatCoreType(entry.attr, entry.ctype, locale)}</div>
-          <div class="pair">
-            <div class="side">
-              <span class="label remove">{LRemove}</span>
-              <ArkGridGemDetail gem={entry.oldGem} showDeleteButton={false} isReplaced={true} />
-            </div>
-            <span class="arrow">-&gt;</span>
-            <div class="side">
-              <span class="label equip">{LEquip}</span>
-              <ArkGridGemDetail gem={entry.newGem} showDeleteButton={false} />
+    <section class="guide-card">
+      <div class="header">
+        <div class="title">{LTitle}</div>
+        <div class="count">{LCount}</div>
+      </div>
+      <div class="list">
+        {#each swapData as entry}
+          <div class="entry">
+            <div class="core-name">{formatCoreType(entry.attr, entry.ctype, locale)}</div>
+            <div class="pair">
+              <div class="side">
+                <span class="label remove">{LRemove}</span>
+                <ArkGridGemDetail gem={entry.oldGem} showDeleteButton={false} isReplaced={true} />
+              </div>
+              <span class="arrow">-&gt;</span>
+              <div class="side">
+                <span class="label equip">{LEquip}</span>
+                <ArkGridGemDetail gem={entry.newGem} showDeleteButton={false} />
+              </div>
             </div>
           </div>
-        </div>
-      {/each}
-    </div>
+        {/each}
+      </div>
+    </section>
   </div>
 {/if}
 
 <style>
   .root {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+    width: 99%;
+    min-width: 0;
+  }
+
+  .guide-card {
     display: flex;
     flex-direction: column;
-    width: 100%;
     gap: 0.55rem;
-    padding: 0.8rem;
+    padding: 0.9rem;
     box-sizing: border-box;
     border: 1px solid var(--reference-border, var(--border));
     border-radius: 0.75rem;
@@ -138,7 +147,8 @@
     gap: 0.45rem;
     max-height: 28rem;
     overflow-y: auto;
-    padding-right: 0.25rem;
+    padding-right: 0;
+    scrollbar-gutter: stable;
   }
 
   .entry {
@@ -146,7 +156,8 @@
     grid-template-columns: minmax(7rem, 11rem) minmax(0, 1fr);
     align-items: center;
     gap: 0.55rem;
-    padding: 0.45rem;
+    min-height: 4.35rem;
+    padding: 0.55rem;
     border: 1px solid var(--reference-border, var(--border));
     border-radius: 0.6rem;
     background: var(--reference-card, var(--card));
@@ -172,14 +183,14 @@
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: 0.35rem;
+    gap: 0.3rem;
     flex: 1;
     min-width: 0;
   }
 
   .label {
     flex-shrink: 0;
-    min-width: 2.5rem;
+    min-width: 1.5rem;
     font-size: 0.68rem;
     font-weight: 600;
     letter-spacing: 0.04em;
@@ -208,10 +219,10 @@
     width: 100%;
     min-width: 0;
     max-width: none;
-    height: 3.25rem;
-    min-height: 3.25rem;
-    max-height: 3.25rem;
-    padding: 0.4rem;
+    height: 3.45rem;
+    min-height: 3.45rem;
+    max-height: 3.45rem;
+    padding: 0.45rem;
     box-sizing: border-box;
   }
 
@@ -241,6 +252,10 @@
 
     .pair {
       flex-wrap: wrap;
+    }
+
+    .root {
+      width: 100%;
     }
   }
 </style>
