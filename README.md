@@ -172,16 +172,4 @@ MIT License
 
 欢迎提交 Issue 和 Pull Request！
 
----
-
-## CloudBase 部署
-
-本项目已部署到腾讯云 CloudBase 静态网站托管。
-
-### 访问地址
-
-- **主站**: https://free-3gpsqv6gf05f54c6-1301002338.tcloudbaseapp.com/lostark-arkgrid-gem-locator/
-
-
-
 **注意**: 这是一个非官方工具，与 Smilegate RPG 或 Amazon Games 无关。
