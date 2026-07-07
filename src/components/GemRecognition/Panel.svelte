@@ -143,6 +143,7 @@
   let showDiagnostics = $state<boolean>(false);
   let showRecognitionLocaleMenu = $state<boolean>(false);
   let detectionMargin = $state<number>(0);
+  let recognitionLocaleMenuElement: HTMLDivElement | null = null;
 
   let _captureController: CaptureController | null = null;
   let _prevGem: string | null = null;
@@ -163,8 +164,22 @@
     if (isRecording) showRecognitionLocaleMenu = false;
   });
 
+  $effect(() => {
+    window.addEventListener('pointerdown', handleRecognitionLocaleDocumentPointerDown);
+    return () => {
+      window.removeEventListener('pointerdown', handleRecognitionLocaleDocumentPointerDown);
+    };
+  });
+
   function selectRecognitionLocale(locale: GemRecognitionLocale) {
     setGemRecognitionLocale(locale);
+    showRecognitionLocaleMenu = false;
+  }
+
+  function handleRecognitionLocaleDocumentPointerDown(event: PointerEvent) {
+    if (!showRecognitionLocaleMenu) return;
+    const eventTarget = event.target;
+    if (eventTarget instanceof Node && recognitionLocaleMenuElement?.contains(eventTarget)) return;
     showRecognitionLocaleMenu = false;
   }
 
@@ -484,7 +499,11 @@
             <span class="recognition-locale-hint">{LRecognitionLanguageHint}</span>
           </span>
         </span>
-        <div class="recognition-locale-inline-menu" class:open={showRecognitionLocaleMenu}>
+        <div
+          class="recognition-locale-inline-menu"
+          class:open={showRecognitionLocaleMenu}
+          bind:this={recognitionLocaleMenuElement}
+        >
           <button
             type="button"
             class="recognition-locale-value"

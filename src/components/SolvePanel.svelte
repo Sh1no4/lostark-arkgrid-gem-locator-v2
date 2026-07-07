@@ -292,6 +292,10 @@
     return `${progress.stage}:${progress.attr ?? ''}`;
   }
 
+  function clampProgressPercent(percent: number) {
+    return Math.min(100, Math.max(0, percent));
+  }
+
   async function runSolve() {
     if (isSolving) return;
 
@@ -390,9 +394,10 @@
             role="progressbar"
             aria-valuemin="0"
             aria-valuemax="100"
-            aria-valuenow={solveProgress.totalPercent}
+            aria-valuenow={clampProgressPercent(solveProgress.totalPercent)}
           >
-            <div class="fill" style={`width: ${solveProgress.totalPercent}%`}></div>
+            <div class="fill" style={`width: ${clampProgressPercent(solveProgress.totalPercent)}%`}>
+            </div>
           </div>
         {/if}
         <div class="progress-log">
@@ -497,7 +502,10 @@
     opacity: 1;
   }
   .solve-progress {
+    box-sizing: border-box;
     width: 100%;
+    max-width: 100%;
+    min-width: 0;
     background: var(--reference-muted, var(--card-inner));
     border: 1px solid var(--reference-border, var(--border));
     border-radius: 0.65rem;
@@ -515,10 +523,14 @@
     display: flex;
     justify-content: space-between;
     gap: 1rem;
+    min-width: 0;
     font-size: 0.95rem;
   }
   .progress-bar {
+    box-sizing: border-box;
     width: 100%;
+    max-width: 100%;
+    min-width: 0;
     height: 0.75rem;
     border-radius: 999px;
     background: color-mix(
@@ -530,6 +542,7 @@
   }
   .progress-bar > .fill {
     height: 100%;
+    max-width: 100%;
     background: linear-gradient(
       90deg,
       var(--reference-accent, var(--primary)),

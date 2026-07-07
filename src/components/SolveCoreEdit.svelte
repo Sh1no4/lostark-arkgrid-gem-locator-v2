@@ -19,6 +19,7 @@
   let { attr, ctype, core = $bindable() }: Props = $props();
   const targetPoints = [20, 19, 18, 17, 14, 10, 0];
   let showGoalPointMenu = $state(false);
+  let goalPointMenuElement: HTMLDivElement | null = null;
 
   $effect(() => {
     if (!core) {
@@ -30,6 +31,14 @@
       core.goalPoint = maxPoint;
     }
   });
+
+  $effect(() => {
+    window.addEventListener('pointerdown', handleGoalPointDocumentPointerDown);
+    return () => {
+      window.removeEventListener('pointerdown', handleGoalPointDocumentPointerDown);
+    };
+  });
+
   let locale = $derived(appLocale.current);
   const LTitle = $derived(formatCoreType(attr, ctype, locale, true));
   let maxCorePoint = $derived(getMaxCorePoint(core));
@@ -54,13 +63,20 @@
     core.goalPoint = targetPoint;
     showGoalPointMenu = false;
   }
+
+  function handleGoalPointDocumentPointerDown(event: PointerEvent) {
+    if (!showGoalPointMenu) return;
+    const eventTarget = event.target;
+    if (eventTarget instanceof Node && goalPointMenuElement?.contains(eventTarget)) return;
+    showGoalPointMenu = false;
+  }
 </script>
 
 <div class="root">
   <div class="title">{LTitle}</div>
   <div>
     {#if core}
-      <div class="goal-point-menu" class:open={showGoalPointMenu}>
+      <div class="goal-point-menu" class:open={showGoalPointMenu} bind:this={goalPointMenuElement}>
         <button
           type="button"
           class="goal-point-value"
