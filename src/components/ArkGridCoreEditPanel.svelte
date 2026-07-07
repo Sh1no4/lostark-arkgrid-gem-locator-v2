@@ -45,9 +45,10 @@
   const attrs = Object.values(ArkGridAttrs);
   const ctypes = Object.values(ArkGridCoreTypes);
 
-  function toggleIsSupporter() {
-    // 딜러 서폿 전환
-    updateIsSupporter(!profile.isSupporter);
+  function selectIsSupporter(nextIsSupporter: boolean) {
+    if (profile.isSupporter === nextIsSupporter) return;
+
+    updateIsSupporter(nextIsSupporter);
 
     // 코어들 계수 서폿용으로 다시 입력
     for (const attr of attrs) {
@@ -55,7 +56,7 @@
         const core = cores[attr][ctype];
         if (!core) continue;
         core.tier = 0; // 티어 모두 초기화. TODO 티어 저장? 굳이?
-        resetCoreCoeff(core, isSupporter, profile.weapon);
+        resetCoreCoeff(core, nextIsSupporter, profile.weapon);
       }
     }
   }
@@ -67,7 +68,14 @@
       {LTitle[locale]} - {isSupporter ? LSupporter[locale] : LDealeer[locale]}
       <img src={profile.isSupporter ? imgRoleSupporter : imgRoleCombat} alt="role" />
     </div>
-    <button onclick={toggleIsSupporter}>⇆ {LSwitchRole[locale]}</button>
+    <div class="role-segmented-control" aria-label={LSwitchRole[locale]}>
+      <button class:active={!isSupporter} onclick={() => selectIsSupporter(false)}>
+        {LDealeer[locale]}
+      </button>
+      <button class:active={isSupporter} onclick={() => selectIsSupporter(true)}>
+        {LSupporter[locale]}
+      </button>
+    </div>
   </div>
   {#each attrs as attr}
     {#each ctypes as ctype}
@@ -89,6 +97,12 @@
 <style>
   .panel {
     position: relative; /* overlay 위치 기준 */
+    gap: 0.65rem;
+    padding: 0.85rem;
+    border-color: var(--reference-border, var(--border));
+    border-radius: 0.75rem;
+    background: var(--reference-card, var(--card));
+    box-shadow: none;
   }
 
   /* 버튼 모음 */
@@ -100,27 +114,31 @@
     justify-content: right;
   }
   .buttons > button {
+    color: var(--reference-accent, var(--primary));
+    background: var(--reference-muted, var(--card-inner));
+    border-color: var(--reference-border, var(--border));
+    border-radius: 999px;
+    font-size: 0.85rem;
+  }
+  .buttons > button {
     /* 너비는 자동이지만 최소 5em */
     width: auto;
     min-width: 5em;
   }
   .title-and-button {
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     /* justify-content: space-between; */
     /* 이거 대신 button에게 margin-left를 사용함 */
     flex-wrap: wrap;
-    gap: 0.7rem;
+    gap: 0.6rem;
   }
   .title-and-button .title {
     /* flex 기본 크기를 내용물(auto)대로 설정 */
     /* 이게 없이 wrap만 설정하면, 좁아져도 줄바꿈을 해야하는 이유를 모름 */
     flex-basis: auto;
-    font-size: 1.4rem;
-    font-weight: 700;
-  }
-  .title-and-button button {
-    margin-left: auto; /* 남는 공간을 밀어 버튼을 오른쪽으로 */
+    font-size: 0.95rem;
+    font-weight: 800;
   }
   .title {
     display: flex;
@@ -130,7 +148,28 @@
     align-items: center;
   }
   .title > img {
-    height: 75%;
+    height: 1.2rem;
     transform: translateY(1px);
+  }
+
+  .role-segmented-control {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    padding: 0.15rem;
+    border: 1px solid var(--reference-border, var(--border));
+    border-radius: 0.55rem;
+    background: var(--reference-muted, var(--card-inner));
+  }
+
+  .role-segmented-control > button {
+    border: none;
+    border-radius: 0.42rem;
+    background: transparent;
+    font-weight: 700;
+  }
+
+  .role-segmented-control > button.active {
+    color: white;
+    background: var(--reference-accent, var(--primary));
   }
 </style>

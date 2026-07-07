@@ -49,6 +49,10 @@ export class CaptureController {
     if (debugCanvas) this.debugCanvas = debugCanvas;
   }
 
+  setDebugCanvas(debugCanvas: HTMLCanvasElement | null) {
+    this.debugCanvas = debugCanvas;
+  }
+
   // type-safe wrapper
   private postMessage(msg: CaptureWorkerRequest) {
     if (!this.worker) throw Error('worker is not set');

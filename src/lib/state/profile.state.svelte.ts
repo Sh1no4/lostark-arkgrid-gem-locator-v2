@@ -4,7 +4,6 @@ import {
   type ArkGridAttr,
   ArkGridAttrs,
   DEFAULT_PROFILE_NAME,
-  LostArkGrades,
 } from '../constants/enums';
 import {
   type ArkGridCore,
@@ -136,6 +135,11 @@ export function updateNeedLauncherGem(needLauncherGem: NeedLauncherGem) {
   }
 }
 
+export function updateSolveAfter(data: SolveAfter) {
+  const profile = getCurrentProfile();
+  profile.solveInfo.after = data;
+}
+
 export function initNewProfile(name: string): CharacterProfile {
   return {
     characterName: name,
@@ -239,8 +243,32 @@ export function addGem(gem: ArkGridGem) {
   targetGems.push(gem);
 }
 
+export function replaceGems(gemAttr: ArkGridAttr, recognizedGems: ArkGridGem[]) {
+  const gems = getCurrentProfile().gems;
+  const targetGems = gemAttr == '질서' ? gems.orderGems : gems.chaosGems;
+  const profileGems = recognizedGems.map((recognizedGem) => {
+    const profileGem = { ...recognizedGem };
+    profileGem.grade = determineGemGrade(
+      profileGem.req,
+      profileGem.point,
+      profileGem.option1,
+      profileGem.option2,
+      profileGem.name
+    );
+    return profileGem;
+  });
+
+  targetGems.splice(0, targetGems.length, ...profileGems);
+}
+
 export function clearGems(gemAttr?: ArkGridAttr) {
   const gems = getCurrentProfile().gems;
+  const clearedGems =
+    gemAttr === '질서'
+      ? [...gems.orderGems]
+      : gemAttr === '혼돈'
+        ? [...gems.chaosGems]
+        : [...gems.orderGems, ...gems.chaosGems];
   switch (gemAttr) {
     case '질서':
       gems.orderGems.length = 0;
@@ -252,6 +280,11 @@ export function clearGems(gemAttr?: ArkGridAttr) {
       gems.orderGems.length = 0;
       gems.chaosGems.length = 0;
   }
+  window.dispatchEvent(
+    new CustomEvent('arkgrid:gems-manual-change', {
+      detail: { type: 'clear', gemAttr, gems: clearedGems },
+    })
+  );
 }
 
 export function deleteGem(gem: ArkGridGem) {
@@ -262,6 +295,11 @@ export function deleteGem(gem: ArkGridGem) {
   const index = targetGems.indexOf(gem);
   if (index !== -1) {
     targetGems.splice(index, 1);
+    window.dispatchEvent(
+      new CustomEvent('arkgrid:gems-manual-change', {
+        detail: { type: 'delete', gemAttr: gem.gemAttr, gem },
+      })
+    );
   }
 }
 export function unassignGems() {

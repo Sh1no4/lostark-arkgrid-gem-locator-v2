@@ -70,14 +70,21 @@
     text-align: center;
     justify-content: center;
     align-items: center;
-    gap: 1rem;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    padding: 0.75rem 0;
+    color: var(--subtle-text);
   }
   .footer-dialog {
-    width: 20rem;
+    width: min(32rem, calc(100vw - 2rem));
   }
   .footer-link {
-    color: #9ca3af; /* 은은한 회색 */
-    text-decoration: none; /* 밑줄 제거 */
+    color: var(--subtle-text);
+    text-decoration: none;
     cursor: pointer;
+  }
+
+  .footer-link:hover {
+    color: var(--text);
   }
 </style>

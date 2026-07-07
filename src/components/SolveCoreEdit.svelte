@@ -17,9 +17,14 @@
     core: ArkGridCore | null;
   }
   let { attr, ctype, core = $bindable() }: Props = $props();
+  const targetPoints = [20, 19, 18, 17, 14, 10, 0];
+  let showGoalPointMenu = $state(false);
 
   $effect(() => {
-    if (!core) return;
+    if (!core) {
+      showGoalPointMenu = false;
+      return;
+    }
     const maxPoint = getMaxCorePoint(core);
     if (core.goalPoint > maxPoint) {
       core.goalPoint = maxPoint;
@@ -43,19 +48,50 @@
     if (!core) return null;
     return new Core(getDefaultCoreEnergy(core), core.goalPoint, buildCoreArray(core.coeffs));
   }
+
+  function selectGoalPoint(targetPoint: number) {
+    if (!core || targetPoint > maxCorePoint) return;
+    core.goalPoint = targetPoint;
+    showGoalPointMenu = false;
+  }
 </script>
 
 <div class="root">
   <div class="title">{LTitle}</div>
   <div>
     {#if core}
-      <select bind:value={core.goalPoint}>
-        {#each [20, 19, 18, 17, 14, 10, 0] as targetPoint}
-          <option value={targetPoint} disabled={targetPoint > maxCorePoint}>
-            {targetPoint}
-          </option>
-        {/each}
-      </select>
+      <div class="goal-point-menu" class:open={showGoalPointMenu}>
+        <button
+          type="button"
+          class="goal-point-value"
+          aria-haspopup="listbox"
+          aria-expanded={showGoalPointMenu}
+          onclick={() => (showGoalPointMenu = !showGoalPointMenu)}
+        >
+          <span>{core.goalPoint}</span>
+          <span class="goal-point-arrow" aria-hidden="true"></span>
+        </button>
+        {#if showGoalPointMenu}
+          <div class="goal-point-options" role="listbox">
+            {#each targetPoints as targetPoint}
+              <button
+                type="button"
+                class="goal-point-option"
+                class:active={targetPoint === core.goalPoint}
+                disabled={targetPoint > maxCorePoint}
+                role="option"
+                aria-selected={targetPoint === core.goalPoint}
+                onclick={() => selectGoalPoint(targetPoint)}
+              >
+                <span>{targetPoint}</span>
+                {#if targetPoint === core.goalPoint}
+                  <span class="goal-point-selected" aria-hidden="true">✓</span>
+                {/if}
+              </button>
+            {/each}
+          </div>
+        {/if}
+      </div>
     {:else}
       <div>-</div>
     {/if}
@@ -64,28 +100,135 @@
 
 <style>
   .root {
-    background-color: lightblue;
     display: flex;
     flex-direction: column;
     align-items: center;
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 0.4rem;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    padding: 1rem;
+    gap: 0.45rem;
+    background: color-mix(
+      in srgb,
+      var(--reference-muted, var(--card-inner)) 72%,
+      var(--reference-card, var(--card))
+    );
+    border: 1px solid var(--reference-border, var(--border));
+    border-radius: 0.6rem;
+    box-shadow: none;
+    padding: 0.7rem;
   }
   .root > .title {
-    font-weight: 500;
-    font-size: 1.1rem;
+    color: var(--text);
+    font-weight: 700;
+    font-size: 0.9rem;
   }
 
-  select {
-    /* 테두리까지 포함해서 크기 계산 */
+  .goal-point-menu {
+    position: relative;
+    width: 4rem;
+  }
+
+  .goal-point-value {
     box-sizing: border-box;
+    width: 100%;
+    min-height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.42rem;
+    color: var(--text);
+    background: color-mix(
+      in srgb,
+      var(--reference-card, var(--card)) 88%,
+      var(--reference-muted, var(--card-inner))
+    );
+    border: 1px solid var(--reference-border, var(--border));
+    border-radius: 999px;
+    padding: 0.32rem 0.45rem;
+    box-shadow: inset 0 1px 1px rgba(84, 55, 24, 0.04);
     font-size: 0.9rem;
-    width: 3rem;
-    text-align: center;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  .goal-point-value:hover,
+  .goal-point-menu.open > .goal-point-value {
+    border-color: color-mix(in srgb, var(--reference-accent, var(--primary)) 48%, var(--border));
+    background: var(--reference-card, var(--card));
+  }
+
+  .goal-point-value:focus-visible {
+    outline: none;
+    border-color: var(--reference-accent, var(--primary));
+    box-shadow: 0 0 0 2px
+      color-mix(in srgb, var(--reference-accent, var(--primary)) 18%, transparent);
+  }
+
+  .goal-point-arrow {
+    display: inline-block;
+    width: 0;
+    height: 0;
+    flex-shrink: 0;
+    border-left: 0.25rem solid transparent;
+    border-right: 0.25rem solid transparent;
+    border-top: 0.32rem solid var(--subtle-text);
+    color: var(--subtle-text);
+    margin-left: 0.04rem;
+    transform: translateY(0.02rem);
+  }
+
+  .goal-point-options {
+    position: absolute;
+    z-index: 20;
+    top: calc(100% + 0.3rem);
+    right: 0;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.25rem;
+    border: 1px solid var(--reference-border, var(--border));
+    border-radius: 0.65rem;
+    background: color-mix(
+      in srgb,
+      var(--reference-card, var(--card)) 90%,
+      var(--reference-muted, var(--card-inner))
+    );
+    box-shadow: 0 0.55rem 1rem rgba(68, 46, 20, 0.12);
+  }
+
+  .goal-point-option {
+    width: 100%;
+    min-height: 1.8rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.25rem;
+    padding: 0.35rem 0.42rem;
     border: none;
-    background: none;
+    border-radius: 0.45rem;
+    background: transparent;
+    color: var(--text);
+    font-size: 0.84rem;
+    font-weight: 800;
+    text-align: left;
+  }
+
+  .goal-point-option:hover:not(:disabled) {
+    background: var(--reference-muted, var(--card-inner));
+  }
+
+  .goal-point-option.active {
+    color: var(--reference-accent, var(--primary));
+    background: color-mix(
+      in srgb,
+      var(--reference-accent, var(--primary)) 10%,
+      var(--reference-card, var(--card))
+    );
+  }
+
+  .goal-point-option:disabled {
+    opacity: 0.42;
+    cursor: not-allowed;
+  }
+
+  .goal-point-selected {
+    font-size: 0.72rem;
+    font-weight: 900;
   }
 </style>

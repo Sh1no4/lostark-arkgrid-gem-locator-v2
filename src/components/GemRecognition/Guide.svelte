@@ -47,8 +47,9 @@
       <ol>
         <li>게임 화면이 올바르게 갱신 중인지 확인해주세요.</li>
         <li>
-          젬 옵션을 추출하는 영역이 실제 위치와 일치하지 않는다면 게임 해상도를 "1920x1080 (16:9)"로
-          화면을 "창 모드"로 변경해주세요. "21:9 강제 설정"을 사용 중이라면 해제해주세요.
+          젬 옵션을 추출하는 영역이 실제 위치와 일치하지 않는다면 1920x1080, 2560x1440, 3840x2160
+          등 16:9 해상도를 사용하고 화면을 "창 모드"로 변경해주세요. "21:9 강제 설정"을 사용 중이라면
+          해제해주세요.
         </li>
         <li>
           젬 옵션을 추출하는 영역이 빨갛게 되어 있다면 상단 '허용 오차 범위' 슬라이더를 높혀서
@@ -85,9 +86,9 @@
         <ol>
           <li>Make sure the game screen is updating properly.</li>
           <li>
-            If the area used to extract astrogem options does not match the actual screen, set the
-            game resolution to "1920x1080 (16:9)" and switch to "windowed mode". If you are using
-            "Force 21:9 Aspect Ratio", please disable it.
+            If the area used to extract astrogem options does not match the actual screen, use a
+            16:9 resolution such as 1920x1080, 2560x1440, or 3840x2160 and switch to "windowed mode".
+            If you are using "Force 21:9 Aspect Ratio", please disable it.
           </li>
           <li>
             If parts of the extraction area are highlighted in red, try increasing the “Recognition
@@ -125,8 +126,8 @@
         <ol>
           <li>确保游戏画面正在正确更新。</li>
           <li>
-            如果用于提取护石选项的区域与实际屏幕不匹配，请将游戏分辨率设置为 "1920x1080 (16:9)"
-            并切换到 "窗口模式"。如果您正在使用 "强制 21:9 宽高比"，请禁用它。
+            如果用于提取护石词条的区域与实际屏幕不匹配，请使用 1920x1080、2560x1440 或 3840x2160
+            等 16:9 分辨率，并切换到 "窗口模式"。如果您正在使用 "强制 21:9 宽高比"，请禁用它。
           </li>
           <li>如果提取区域的部分区域显示为红色，请尝试调高顶部的 "识别公差范围" 滑块。</li>
           <li>滚动时保持鼠标光标位于滚动条上方，以避免与护石交互。</li>

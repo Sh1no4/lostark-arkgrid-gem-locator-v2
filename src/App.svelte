@@ -2,11 +2,11 @@
   import { SvelteToast } from '@zerodevx/svelte-toast';
   import { onMount } from 'svelte';
 
-  import CharacterProfileEditor from './components/CharacterProfileEditor.svelte';
-  import Footer from './components/Footer/Footer.svelte';
+  import ArkGridAllGemListPanel from './components/ArkGridAllGemListPanel.svelte';
+  import ArkGridCoreEditPanel from './components/ArkGridCoreEditPanel.svelte';
   import GemRecognitionPanel from './components/GemRecognition/Panel.svelte';
-  import AppConfiguration from './components/Header/AppConfiguration.svelte';
-  import ProfileEdit from './components/Header/ProfileEditor.svelte';
+  import AppToolbar from './components/Header/AppToolbar.svelte';
+  import SolvePanel from './components/SolvePanel.svelte';
   import { type LocalizationName } from './lib/constants/enums';
   import { appConfig, enableDarkMode, toggleUI } from './lib/state/appConfig.state.svelte';
   import { appLocale, setLocale } from './lib/state/locale.state.svelte';
@@ -16,7 +16,17 @@
   const LTitle: LocalizationName = {
     ko_kr: '아크 그리드 전투력 최적화',
     en_us: 'Ark Grid Combat Power Optimizer',
-    zh_cn: '方舟棋盘战斗力优化器',
+    zh_cn: '命运方舟护石优化器',
+  };
+  const LSubtitle: LocalizationName = {
+    ko_kr: '젬 가공 시뮬레이터 - 아크 그리드',
+    en_us: 'Astrogem processing simulator - Ark Grid',
+    zh_cn: '护石加工模拟器 - 方舟棋盘',
+  };
+  const LManualInputTitle: LocalizationName = {
+    ko_kr: '수동 입력',
+    en_us: 'Manual Input',
+    zh_cn: '手动输入',
   };
   let currentProfile = $state<CharacterProfile>(getCurrentProfile());
   $effect(() => {
@@ -68,7 +78,7 @@
     {
       ko_kr: '아크 그리드 전투력 최적화',
       en_us: 'Ark Grid Combat Power Optimizer',
-      zh_cn: '方舟棋盘战斗力优化器',
+      zh_cn: '命运方舟护石优化器',
     }[appLocale.current]
   );
 </script>
@@ -79,38 +89,171 @@
 
 <main>
   <SvelteToast options={{ reversed: true, intro: { y: 192 } }} />
-  <div class="contents">
-    <div class="title">{LTitle[locale]}</div>
-    <AppConfiguration></AppConfiguration>
-    <ProfileEdit></ProfileEdit>
-    <GemRecognitionPanel></GemRecognitionPanel>
-    <CharacterProfileEditor bind:profile={currentProfile}></CharacterProfileEditor>
+  <div class="reference-page">
+    <AppToolbar></AppToolbar>
+
+    <section class="reference-shell" aria-labelledby="workflow-title">
+      <div class="reference-title-row">
+        <div class="reference-title-row__icon" aria-hidden="true">✦</div>
+        <h1 id="workflow-title">{LTitle[locale]}</h1>
+      </div>
+
+      <div class="reference-content">
+        <aside class="reference-left-column" aria-label={LSubtitle[locale]}>
+          <GemRecognitionPanel></GemRecognitionPanel>
+        </aside>
+
+        <section class="manual-input-panel" aria-labelledby="manual-input-title">
+          <div class="reference-panel-title" id="manual-input-title">{LManualInputTitle[locale]}</div>
+          {#if currentProfile}
+            <div class="manual-input-panel__content">
+              <ArkGridCoreEditPanel profile={currentProfile}></ArkGridCoreEditPanel>
+              <ArkGridAllGemListPanel gems={currentProfile.gems}></ArkGridAllGemListPanel>
+            </div>
+          {/if}
+        </section>
+
+        {#if currentProfile}
+          <section class="optimization-panel" aria-label="Optimization">
+            <SolvePanel bind:profile={currentProfile}></SolvePanel>
+          </section>
+        {/if}
+      </div>
+    </section>
   </div>
 </main>
-<footer>
-  <Footer></Footer>
-</footer>
-
 <style>
-  .contents {
+  .reference-page {
     display: flex;
     flex-direction: column;
-    gap: var(--global-gap);
-    /* 넓을 땐 20px 패딩, 960px 이후 (세로 레아이웃) 점점 좁아짐 */
-    padding: clamp(8px, 2.083vw, 20px);
+    gap: 0.85rem;
+    width: min(100% - 1.5rem, 112rem);
+    max-width: none;
+    margin: 0 auto;
+    padding: 0.5rem 0 0;
   }
-  @media (max-width: 767px) {
-    .contents {
-      padding: 0rem;
-    }
+
+  .reference-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    min-height: calc(100vh - 4rem);
+    padding: clamp(1rem, 1.6vw, 1.5rem);
+    border: 1px solid var(--reference-border, var(--border));
+    border-radius: 0.95rem;
+    background: var(--reference-shell, var(--bg));
+    box-shadow: 0 1px 2px rgba(84, 55, 24, 0.08);
   }
-  .contents .title {
-    font-weight: 700;
-    font-size: 3rem;
+
+  .reference-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.85rem;
     text-align: center;
+  }
+
+  .reference-title-row__icon {
+    display: grid;
+    place-items: center;
+    width: 2.7rem;
+    height: 2.7rem;
+    border-radius: 50%;
+    color: white;
+    background: radial-gradient(circle at 35% 35%, #7557ff 0%, #3f247f 62%, #c79643 65%);
+    border: 2px solid #d9b76f;
+    font-size: 1.1rem;
+    box-shadow: 0 2px 3px rgba(84, 55, 24, 0.18);
+  }
+
+  .reference-title-row h1 {
+    margin: 0;
+    font-weight: 850;
+    font-size: clamp(1.65rem, 3vw, 2rem);
+    letter-spacing: -0.035em;
     word-break: keep-all;
     overflow-wrap: break-word;
   }
+
+  .reference-content {
+    display: grid;
+    grid-template-columns: minmax(15.5rem, 0.24fr) minmax(0, 1fr);
+    grid-template-areas:
+      'recognition manual'
+      'optimization optimization';
+    gap: 1rem;
+    align-items: stretch;
+  }
+
+  .reference-left-column {
+    grid-area: recognition;
+    min-width: 0;
+  }
+
+  .manual-input-panel {
+    grid-area: manual;
+    min-width: 0;
+    min-height: 32rem;
+    padding: 1rem;
+    border: 1px solid var(--reference-border, var(--border));
+    border-radius: 0.75rem;
+    background: var(--reference-card, var(--card));
+    box-shadow: 0 2px 4px rgba(84, 55, 24, 0.04);
+  }
+
+  .reference-panel-title {
+    margin-bottom: 0.75rem;
+    font-size: 1rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+
+  .manual-input-panel__content {
+    display: grid;
+    grid-template-columns: minmax(22rem, 1.08fr) minmax(20rem, 0.92fr);
+    gap: 1rem;
+    align-items: stretch;
+  }
+
+  .optimization-panel {
+    grid-area: optimization;
+    min-width: 0;
+  }
+
+  @media (max-width: 1040px) {
+    .reference-page {
+      padding: 0;
+    }
+
+    .reference-shell {
+      padding: 0.75rem;
+      border-radius: 0.75rem;
+    }
+
+    .reference-content {
+      grid-template-columns: 1fr;
+      grid-template-areas:
+        'recognition'
+        'manual'
+        'optimization';
+    }
+
+    .manual-input-panel__content {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 767px) {
+    .reference-page {
+      width: 100%;
+    }
+
+    .reference-title-row {
+      justify-content: flex-start;
+      text-align: left;
+    }
+  }
+
   :root {
     --toastContainerTop: auto;
     --toastContainerRight: auto;

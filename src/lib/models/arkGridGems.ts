@@ -135,6 +135,13 @@ export interface ArkGridGem {
   option1: ArkGridGemOption;
   option2: ArkGridGemOption;
   assign?: number;
+  isNew?: boolean;
+  replaces?: ArkGridGem;
+  swapIndex?: number;
+}
+
+export function gemFingerprint(gem: ArkGridGem): string {
+  return `${gem.req}|${gem.point}|${gem.option1.optionType}|${gem.option1.value}|${gem.option2.optionType}|${gem.option2.value}`;
 }
 
 export function determineGemGrade(

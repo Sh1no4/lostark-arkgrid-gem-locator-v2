@@ -1,4 +1,3 @@
-import { undistort } from '@techstark/opencv-js';
 import { persistedState } from 'svelte-persisted-state';
 
 import { type ArkGridAttr, ArkGridAttrs, DEFAULT_PROFILE_NAME } from '../constants/enums';
@@ -16,6 +15,7 @@ interface UIConfig {
   debugMode: boolean;
   darkMode: boolean;
   deferredScreenSharingInit: boolean;
+  newGemAddStyle: boolean;
 }
 const defaultUIConfig: UIConfig = {
   showGemRecognitionPanel: true,
@@ -24,6 +24,7 @@ const defaultUIConfig: UIConfig = {
   debugMode: false,
   darkMode: false,
   deferredScreenSharingInit: false,
+  newGemAddStyle: false,
 };
 
 interface AppConfig {
@@ -61,6 +62,10 @@ export function migrateAppConfig(appConfig: Partial<AppConfig>) {
   // deferredScreenSharingInit
   if (appConfig.uiConfig && appConfig.uiConfig.deferredScreenSharingInit === undefined) {
     appConfig.uiConfig.deferredScreenSharingInit = false;
+  }
+  // newGemAddStyle
+  if (appConfig.uiConfig && appConfig.uiConfig.newGemAddStyle === undefined) {
+    appConfig.uiConfig.newGemAddStyle = false;
   }
 }
 
@@ -117,6 +122,9 @@ export function addNewProfile(profile: CharacterProfile) {
 }
 export function toggleUI(optionName: keyof UIConfig) {
   appConfig.current.uiConfig[optionName] = !appConfig.current.uiConfig[optionName];
+}
+export function updateUI(optionName: keyof UIConfig, value: boolean) {
+  appConfig.current.uiConfig[optionName] = value;
 }
 
 export function updateOpenApiJWT(jwtInput: string) {

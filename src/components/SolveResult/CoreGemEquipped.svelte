@@ -72,40 +72,71 @@
 
 <style>
   .root {
-    width: 18rem;
+    width: 100%;
+    min-width: 0;
     display: flex;
     flex-direction: column;
-    padding: 0.5rem;
-    height: 21rem;
-
-    border: 1px solid var(--border);
-    border-radius: 0.4rem;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    gap: 0.8rem;
+    padding: 0.9rem;
+    min-height: 21rem;
+    box-sizing: border-box;
+    border: 1px solid var(--reference-border, var(--border));
+    border-radius: 0.7rem;
+    background: color-mix(
+      in srgb,
+      var(--reference-muted, var(--card-inner)) 52%,
+      var(--reference-card, var(--card))
+    );
+    box-shadow: none;
   }
   .title {
-    font-weight: 500;
-    font-size: 1.2rem;
+    font-weight: 800;
+    font-size: 0.95rem;
     align-self: center;
+    text-align: center;
   }
   .gems {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.55rem;
+    min-width: 0;
+  }
+
+  .gems :global(.gem-box) {
+    width: 100%;
+    min-width: 15rem;
+    max-width: none;
+    height: 3.6rem;
+    min-height: 3.6rem;
+    max-height: 3.6rem;
+    box-sizing: border-box;
+  }
+  .gems :global(.gem) {
+    row-gap: 0.15rem;
+  }
+  .gems :global(.gem > .gem-spec > .text) {
+    line-height: 1.15;
+    transform: none;
   }
   .core-point-and-power {
-    font-size: 0.9rem;
-    align-self: center;
+    width: 100%;
+    font-size: 0.85rem;
     display: flex;
     flex-direction: row;
-    justify-content: space-around;
+    justify-content: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    color: var(--subtle-text);
   }
   .core-point-and-power > .item {
-    padding: 0.5rem;
+    padding: 0.25rem 0.55rem;
+    border: 1px solid var(--reference-border, var(--border));
+    border-radius: 999px;
+    background: var(--reference-card, var(--card));
   }
   @media (max-width: 960px) {
     .root {
-      /* 모바일일 땐 굳이 높이 지킬 필요 없음 */
-      height: 0%;
+      min-height: 0;
     }
   }
 </style>

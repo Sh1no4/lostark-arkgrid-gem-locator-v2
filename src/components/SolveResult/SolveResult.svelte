@@ -4,6 +4,7 @@
   import CoreGemEquippedList from './CoreGemEquippedList.svelte';
   import GemOptionStats from './GemOptionStats.svelte';
   import ScoreIndicator from './ScoreIndicator.svelte';
+  import SwapGuide from './SwapGuide.svelte';
 
   type Props = {
     solveAfter: SolveAfter;
@@ -29,10 +30,15 @@
         ></AdditionalGemResult>
       {/if}
     </div>
-    {#if solveAfter.answerCores && solveAfter.solveAnswer}
-      <CoreGemEquippedList answerCores={solveAfter.answerCores} solveAnswer={solveAfter.solveAnswer}
-      ></CoreGemEquippedList>
-    {/if}
+    <div class="right">
+      {#if solveAfter.answerCores && solveAfter.solveAnswer}
+        <CoreGemEquippedList
+          answerCores={solveAfter.answerCores}
+          solveAnswer={solveAfter.solveAnswer}
+        />
+        <SwapGuide solveAnswer={solveAfter.solveAnswer} />
+      {/if}
+    </div>
   </div>
 </div>
 
@@ -58,10 +64,16 @@
   .left {
     display: flex;
     flex-direction: column;
-    /* justify-content: center; */
     align-items: center;
     gap: 2rem;
     max-width: 20rem;
+  }
+  .right {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    flex: 1;
+    min-width: 0;
   }
   @media (max-width: 960px) {
     .container {

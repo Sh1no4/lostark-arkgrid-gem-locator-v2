@@ -1,7 +1,7 @@
 <script lang="ts">
   import { type ArkGridAttr, ArkGridAttrs } from '../../lib/constants/enums';
   import { LChaos, LOrder } from '../../lib/constants/localization';
-  import { gemSetPackKey } from '../../lib/solver/utils';
+  import { gemSetPackPreviewKey } from '../../lib/solver/utils';
   import { appLocale } from '../../lib/state/locale.state.svelte';
   import type {
     AdditionalGemResult,
@@ -17,8 +17,8 @@
   const { additionalGemResult, solveAnswer, needLauncherGem }: Props = $props();
 
   let currentKey = $derived<Record<ArkGridAttr, [number, number, number]>>({
-    질서: gemSetPackKey(solveAnswer.gemSetPackTuple.gsp1),
-    혼돈: gemSetPackKey(solveAnswer.gemSetPackTuple.gsp2),
+    질서: gemSetPackPreviewKey(solveAnswer.gemSetPackTuple.gsp1),
+    혼돈: gemSetPackPreviewKey(solveAnswer.gemSetPackTuple.gsp2),
   });
   const sortedAdditionalGemResult = $derived({
     질서: Object.values(additionalGemResult['질서']).sort((a, b) => b.score - a.score),
@@ -60,7 +60,7 @@
     {
       ko_kr: '젬 추가 시뮬레이션',
       en_us: 'Next Astrogem Preview',
-      zh_cn: '追加护石预览',
+      zh_cn: '追加宝石预览',
     }[locale]
   );
   const LAttr = { 질서: LOrder, 혼돈: LChaos };
@@ -70,8 +70,7 @@
         '17P를 달성하지 못한 사용자들을 위해 하나의 젬을 추가로 가공했을 때 가능한 배치들을 보여줍니다. ',
       en_us:
         'This shows the possible combinations when an additional astrogem is added for users who have not reached 17P. ',
-      zh_cn:
-        '这向未达到17P的用户显示，当额外加工一个护石时可能的组合。',
+      zh_cn: '这会预览追加宝石后可达的核心点数组合。',
     }[locale]
   );
   const LCurrentPoints = $derived(
@@ -92,7 +91,7 @@
     {
       ko_kr: '한 개의 추가 젬만으로는 다음 단계를 달성할 수 없습니다.',
       en_us: 'You cannot reach the next stage with only one additional astrogem.',
-      zh_cn: '仅追加一个护石无法达到下一阶段。',
+      zh_cn: '仅追加一个宝石无法达到下一阶段。',
     }[locale]
   );
 </script>
@@ -123,9 +122,8 @@
       </div>
       <div class="scenario-container">
         {#if isEmpty[attr]}
-          <!-- 두 가지 이유로 empty일 수 있다. 1개 만으로는 다음 단계를 달성할 수 없거나, 발사대가 필요 없거나 -->
           {#if needLauncherGem[attr]}
-            {LCannotSucceedWithOneGem}
+            <div>{LCannotSucceedWithOneGem}</div>
           {:else}
             {LMaximumPoint}
           {/if}
@@ -166,25 +164,24 @@
     width: 100%;
   }
   .root > .title {
-    font-weight: 500;
-    font-size: 1.4em;
+    font-weight: 800;
+    font-size: 1rem;
   }
   /* 속성별 컨테이너 */
   .attr-container {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.65rem;
+    padding: 0.9rem;
+    border: 1px solid var(--reference-border, var(--border));
+    border-radius: 0.75rem;
+    background: var(--reference-card, var(--card));
   }
 
   .attr-container > .title {
     text-align: center;
-    background: linear-gradient(
-      to right,
-      rgba(0, 0, 0, 0) 0%,
-      var(--title-shadow) 30%,
-      var(--title-shadow) 70%,
-      rgba(0, 0, 0, 0) 100%
-    );
+    padding-bottom: 0.55rem;
+    border-bottom: 1px solid var(--reference-border, var(--border));
   }
   .attr-container > .title > .main {
     font-weight: 500;
@@ -198,12 +195,20 @@
   .scenario-container {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 0.65rem;
   }
   .scenario {
     display: flex;
     flex-direction: column;
-    gap: 0.3rem;
+    gap: 0.45rem;
+    padding: 0.65rem;
+    border: 1px solid var(--reference-border, var(--border));
+    border-radius: 0.65rem;
+    background: color-mix(
+      in srgb,
+      var(--reference-muted, var(--card-inner)) 68%,
+      var(--reference-card, var(--card))
+    );
   }
   .scenario .core-points::before {
     content: '‣ ';
@@ -228,11 +233,13 @@
   .gem {
     flex: 0 0 auto;
     display: inline-flex;
-    border: 1px solid var(--border);
+    border: 1px solid var(--reference-border, var(--border));
     border-radius: 999em;
     padding: 0.3rem 0.6rem;
     align-items: center;
     justify-content: center;
-    background-color: var(--border);
+    background: var(--reference-card, var(--card));
+    color: var(--text);
+    font-weight: 700;
   }
 </style>

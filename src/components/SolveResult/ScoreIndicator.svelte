@@ -17,7 +17,7 @@
     {
       ko_kr: '아크 그리드 전투력',
       en_us: 'Ark Grid Combat Power',
-      zh_cn: '方舟棋盘战斗力',
+      zh_cn: '护石提供战斗力',
     }[locale]
   );
   const LCurrent = $derived(
@@ -67,6 +67,10 @@
       zh_cn: '这是当前战斗力提升除以最大战斗力提升得到的评分值。',
     }[locale]
   );
+  function formatPercentScore(score: number) {
+    const formattedScore = `${score.toFixed(2)}%`;
+    return score > 0 ? `+${formattedScore}` : formattedScore;
+  }
 </script>
 
 <div class="root">
@@ -76,10 +80,10 @@
       <div class="indicator dot moving" style="--target-left:{scoreRatio * 100}%"></div>
       <div class="indicator bar moving" style="--target-left:{bestRatio * 100}%"></div>
       <div class="label top moving" style="--target-left:{scoreRatio * 100}%">
-        +{scoreSet.score.toFixed(2)}%
+        {formatPercentScore(scoreSet.score)}
       </div>
       <div class="label bottom moving" style="--target-left:{bestRatio * 100}%">
-        +{scoreSet.bestScore.toFixed(2)}%
+        {formatPercentScore(scoreSet.bestScore)}
       </div>
     </div>
   </div>
@@ -147,7 +151,11 @@
   .score-bar {
     position: relative;
     height: 6px;
-    background: var(--border);
+    background: color-mix(
+      in srgb,
+      var(--reference-muted, var(--card-inner)) 68%,
+      var(--reference-border, var(--border))
+    );
     border-radius: 6px;
   }
 

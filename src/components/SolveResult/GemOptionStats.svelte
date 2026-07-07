@@ -30,7 +30,7 @@
     {
       ko_kr: '젬 옵션',
       en_us: 'Astrogem Options',
-      zh_cn: '护石选项',
+      zh_cn: '宝石词条',
     }[locale]
   );
 </script>
@@ -54,22 +54,28 @@
     flex-direction: column;
     gap: 0.5rem;
     width: 100%;
-    max-width: 20rem;
+    max-width: none;
     box-sizing: border-box;
   }
   .title {
-    font-weight: 500;
-    font-size: 1.4em;
+    font-weight: 800;
+    font-size: 1rem;
   }
   .container {
-    display: flex;
-    flex-direction: column;
-    gap: 0.3rem;
-    padding: 0.2rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+    gap: 0.5rem;
   }
   .item {
-    /* border: 1px black solid; */
-    background-color: var(--border);
-    padding: 0.5rem;
+    border: 1px solid var(--reference-border, var(--border));
+    border-radius: 0.55rem;
+    background: color-mix(
+      in srgb,
+      var(--reference-muted, var(--card-inner)) 72%,
+      var(--reference-card, var(--card))
+    );
+    padding: 0.55rem 0.7rem;
+    color: var(--text);
+    font-weight: 700;
   }
 </style>

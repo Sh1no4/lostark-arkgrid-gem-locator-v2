@@ -21,7 +21,7 @@ import type {
   SolverWorkerResponse,
   WorkerCore,
 } from './types';
-import { gemSetPackKey } from './utils';
+import { gemSetPackPreviewKey } from './utils';
 
 const perfectGems = [
   {
@@ -445,6 +445,16 @@ function createProgressReporter(postProgress: ProgressReporter): ProgressReporte
   };
 }
 
+function createPreviewGem(attr: ArkGridAttr, req: number, point: number): ArkGridGem {
+  return {
+    gemAttr: attr,
+    req,
+    point,
+    option1: { optionType: '공격력', value: 0 },
+    option2: { optionType: '추가 피해', value: 0 },
+  };
+}
+
 function runSolve(payload: SolverRunPayload, report: ProgressReporter): SolverRunResult {
   const { orderCores, chaosCores, orderGems, chaosGems, isSupporter } = payload;
   const perfectOrderGems: ArkGridGem[] = [];
@@ -494,30 +504,59 @@ function runSolve(payload: SolverRunPayload, report: ProgressReporter): SolverRu
     { attr: '질서', gsp: answer.gsp1 },
     { attr: '혼돈', gsp: answer.gsp2 },
   ] satisfies { attr: ArkGridAttr; gsp: GemSetPack | null }[];
-  const shouldSimulateLauncherGems = simulationTargets.some(
-    ({ attr, gsp }) => solved.needLauncherGem[attr] && gsp
-  );
-
-  if (shouldSimulateLauncherGems) {
-    emitProgress(report, 'simulating_launcher_gems', 0);
-  }
+  const shouldSimulateLauncherGems = simulationTargets.some(({ gsp }) => Boolean(gsp));
+  const previewCandidateCountByAttr = new Map<ArkGridAttr, number>();
+  let totalPreviewCandidateCount = 0;
 
   for (const { attr, gsp } of simulationTargets) {
-    if (!solved.needLauncherGem[attr] || !gsp) {
+    if (!gsp) {
+      previewCandidateCountByAttr.set(attr, 0);
       continue;
     }
 
-    const currentKey = gemSetPackKey(gsp).join(',');
+    const currentKeyRaw = gemSetPackPreviewKey(gsp);
+    const isMaxPreviewKey = currentKeyRaw.every((corePoint) => corePoint === 20);
+    const candidateCount = isMaxPreviewKey ? 0 : 35;
+    previewCandidateCountByAttr.set(attr, candidateCount);
+    totalPreviewCandidateCount += candidateCount;
+  }
+  let completedPreviewCandidateCount = 0;
+
+  if (shouldSimulateLauncherGems) {
+    emitProgress(report, 'simulating_launcher_gems', 0, {
+      current: 0,
+      total: totalPreviewCandidateCount,
+    });
+  }
+
+  for (const { attr, gsp } of simulationTargets) {
+    if (!gsp) {
+      continue;
+    }
+
+    const currentKeyRaw = gemSetPackPreviewKey(gsp);
+    const currentKey = currentKeyRaw.join(',');
+    const attrPreviewCandidateCount = previewCandidateCountByAttr.get(attr) ?? 0;
+    if (attrPreviewCandidateCount === 0) {
+      continue;
+    }
 
     for (let gemReq = 3; gemReq < 10; gemReq++) {
       for (let gemPoint = 5; gemPoint >= 1; gemPoint--) {
-        const newGem: ArkGridGem = {
-          gemAttr: attr,
-          req: gemReq,
-          point: gemPoint,
-          option1: { optionType: '공격력', value: 0 },
-          option2: { optionType: '추가 피해', value: 0 },
-        };
+        const newGem = createPreviewGem(attr, gemReq, gemPoint);
+        completedPreviewCandidateCount += 1;
+        const currentPreviewCandidateCount = completedPreviewCandidateCount;
+
+        emitProgress(
+          report,
+          'simulating_launcher_gems',
+          (currentPreviewCandidateCount / Math.max(totalPreviewCandidateCount, 1)) * 100,
+          {
+            attr,
+            current: currentPreviewCandidateCount,
+            total: totalPreviewCandidateCount,
+          }
+        );
 
         const nextSolve = solve(
           orderCores,
@@ -536,7 +575,7 @@ function runSolve(payload: SolverRunPayload, report: ProgressReporter): SolverRu
           continue;
         }
 
-        const newKeyRaw = gemSetPackKey(nextGsp);
+        const newKeyRaw = gemSetPackPreviewKey(nextGsp);
         const newKey = newKeyRaw.join(',');
         const targetAdditionalGem = additionalGemResult[attr];
 

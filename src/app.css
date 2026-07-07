@@ -49,21 +49,43 @@
   --card-inner: var(--color-slate-50);
   --border: var(--color-slate-200);
   --text: var(--color-slate-800);
+  --subtle-text: var(--color-slate-500);
   --muted: var(--color-slate-100);
-  --primary: var(--color-blue-500);
+  --primary: #b45f19;
   --title-shadow: var(--color-slate-100);
+  --reference-bg: #f6f1ea;
+  --reference-shell: #fbf7f0;
+  --reference-card: #fffdfa;
+  --reference-muted: #f4ece1;
+  --reference-border: #e7d8c6;
+  --reference-accent: #b45f19;
+  --reference-accent-hover: #9f4f10;
+  --reference-warning: #dba129;
+  --reference-danger: #f04452;
+  --reference-success: #20c46b;
 }
 
 :root.dark-mode {
   --bg: var(--color-slate-950);
   --anti-bg: var(--color-slate-50);
-  --card: var(--color-slate-900);
-  --card-inner: var(--color-slate-800);
-  --border: var(--color-slate-800);
-  --text: var(--color-slate-200);
-  --muted: var(--color-slate-800);
-  --primary: var(--color-blue-400);
+  --card: #241d16;
+  --card-inner: #2d241b;
+  --border: #4a3928;
+  --text: #f1e7d8;
+  --subtle-text: #bcae9c;
+  --muted: #34291e;
+  --primary: #d08a3d;
   --title-shadow: var(--color-slate-950);
+  --reference-bg: #15110d;
+  --reference-shell: #1d1711;
+  --reference-card: #241d16;
+  --reference-muted: #30261c;
+  --reference-border: #4a3928;
+  --reference-accent: #d08a3d;
+  --reference-accent-hover: #e09a4f;
+  --reference-warning: #d6a33d;
+  --reference-danger: #f06a73;
+  --reference-success: #39c979;
 }
 
 button,
@@ -103,16 +125,18 @@ html {
 }
 
 body {
-  background: var(--bg);
+  margin: 0;
+  background: var(--reference-bg, var(--bg));
 }
 
 #app {
-  background: var(--bg);
+  background: var(--reference-bg, var(--bg));
   color: var(--text);
   /* 중앙 정렬 */
   min-width: 344px;
   /* 360px - 8px * 2 */
-  max-width: 90rem;
+  width: 100%;
+  max-width: none;
   margin: auto auto;
   user-select: none;
 }
