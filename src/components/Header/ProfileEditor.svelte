@@ -102,6 +102,27 @@
       zh_cn: '配置文件格式不正确。',
     }[locale]
   );
+  const LSupporterRole = $derived(
+    {
+      ko_kr: '서포터',
+      en_us: 'Supporter',
+      zh_cn: '辅助',
+    }[locale]
+  );
+  const LCombatRole = $derived(
+    {
+      ko_kr: '딜러',
+      en_us: 'Combat',
+      zh_cn: '输出',
+    }[locale]
+  );
+  const LSelectProfile = $derived(
+    {
+      ko_kr: '프로필 선택',
+      en_us: 'Select profile',
+      zh_cn: '选择配置',
+    }[locale]
+  );
 </script>
 
 <div class="root">
@@ -112,17 +133,23 @@
         class="profile-select-button"
         onclick={() => setCurrentProfileName(profile.characterName)}
         class:active={profile.characterName === currentProfileName.current}
+        aria-pressed={profile.characterName === currentProfileName.current}
+        aria-label={`${LSelectProfile}: ${profile.characterName === DEFAULT_PROFILE_NAME ? L_DEFAULT_PROFILE_NAME[locale] : profile.characterName}`}
       >
         {profile.characterName === DEFAULT_PROFILE_NAME
           ? L_DEFAULT_PROFILE_NAME[locale]
           : profile.characterName}
         {#if profile.characterName !== DEFAULT_PROFILE_NAME}
-          <img src={profile.isSupporter ? imgRoleSupporter : imgRoleCombat} alt="role" />
+          <img
+            src={profile.isSupporter ? imgRoleSupporter : imgRoleCombat}
+            alt={profile.isSupporter ? LSupporterRole : LCombatRole}
+          />
         {/if}
       </button>
     {/each}
     <button
       title={LNewProfile}
+      aria-label={LNewProfile}
       onclick={() => {
         const profileName = window.prompt(LAddNewProfile);
         if (profileName === null || profileName.length == 0) return;
@@ -133,6 +160,7 @@
     >
     <button
       title={LEditProfile}
+      aria-label={LEditProfile}
       disabled={currentProfileName.current === DEFAULT_PROFILE_NAME}
       onclick={() => {
         const profileName = window.prompt(LEditProfileMsg)?.trim();
@@ -146,6 +174,7 @@
     >
     <button
       title={LDeleteProfile}
+      aria-label={LDeleteProfile}
       onclick={() => {
         if (window.confirm(LConfirmDeleteProfile[locale](currentProfileName.current))) {
           deleteProfile(currentProfileName.current);
@@ -155,6 +184,7 @@
     >
     <button
       title={LExportProfile}
+      aria-label={LExportProfile}
       disabled={currentProfileName.current === DEFAULT_PROFILE_NAME}
       onclick={() => {
         const jsonStr = bigIntSerializer.stringify(getProfile(currentProfileName.current));
@@ -177,6 +207,7 @@
     >
     <button
       title={LImportProfile}
+      aria-label={LImportProfile}
       onclick={() => {
         const fileInput = document.createElement('input');
         fileInput.type = 'file';
@@ -251,10 +282,10 @@
     background-color: var(--card);
   }
   button:hover {
-    background-color: var(--card-innner);
+    background-color: var(--card-inner);
   }
   button.active {
-    background-color: var(--card-innner);
+    background-color: var(--card-inner);
     font-weight: bold;
     border: 2px solid;
   }

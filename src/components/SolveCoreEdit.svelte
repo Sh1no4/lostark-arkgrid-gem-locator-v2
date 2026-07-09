@@ -41,6 +41,7 @@
 
   let locale = $derived(appLocale.current);
   const LTitle = $derived(formatCoreType(attr, ctype, locale, true));
+  const goalPointMenuId = $derived(`goal-point-options-${attr}-${ctype}`);
   let maxCorePoint = $derived(getMaxCorePoint(core));
 
   function buildCoreArray(coeffs: ArkGridCoreCoeffs): number[] {
@@ -82,13 +83,15 @@
           class="goal-point-value"
           aria-haspopup="listbox"
           aria-expanded={showGoalPointMenu}
+          aria-controls={goalPointMenuId}
+          aria-label={LTitle}
           onclick={() => (showGoalPointMenu = !showGoalPointMenu)}
         >
           <span>{core.goalPoint}</span>
           <span class="goal-point-arrow" aria-hidden="true"></span>
         </button>
         {#if showGoalPointMenu}
-          <div class="goal-point-options" role="listbox">
+          <div class="goal-point-options" id={goalPointMenuId} role="listbox" aria-label={LTitle}>
             {#each targetPoints as targetPoint}
               <button
                 type="button"
@@ -144,7 +147,7 @@
   .goal-point-value {
     box-sizing: border-box;
     width: 100%;
-    min-height: 2rem;
+    min-height: 2.75rem;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -210,7 +213,7 @@
 
   .goal-point-option {
     width: 100%;
-    min-height: 1.8rem;
+    min-height: 2.5rem;
     display: flex;
     align-items: center;
     justify-content: space-between;

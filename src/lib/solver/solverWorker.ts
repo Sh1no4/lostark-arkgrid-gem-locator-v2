@@ -10,9 +10,10 @@ import {
   gemOptionLevelCoeffs,
   gemOptionLevelCoeffsSupporter,
 } from './models';
-import { getBestGemSetPacks, getMaxStat, getPossibleGemSets } from './solver';
+import { getBestGemSetPacks, getMaxStat, getPossibleGemSetsFromSortedGems } from './solver';
 import type {
   SolverAdditionalGemResult,
+  SolverGemSetPackTupleSummary,
   SolverProgress,
   SolverProgressStage,
   SolverRunPayload,
@@ -101,9 +102,24 @@ const STAGE_RANGES: Record<SolverProgressStage, [number, number]> = {
 type PrecalculatedGspList = {
   order?: GemSetPack[];
   chaos?: GemSetPack[];
+  orderMaxStats?: SolverSideMaxStats;
+  chaosMaxStats?: SolverSideMaxStats;
 };
 
-type StepCallback = (orderGspList: GemSetPack[], chaosGspList: GemSetPack[]) => void;
+type SolverSideMaxStats = {
+  attMax: number;
+  skillMax: number;
+  bossMax: number;
+};
+
+type StepCallback = (
+  orderGspList: GemSetPack[],
+  chaosGspList: GemSetPack[],
+  sideMaxStats: {
+    order: SolverSideMaxStats;
+    chaos: SolverSideMaxStats;
+  }
+) => void;
 type ProgressReporter = (progress: SolverProgress) => void;
 
 type SolveOptions = {
@@ -118,6 +134,50 @@ type SolveResultInternal = {
   assignedGemIndexes: number[][];
   needLauncherGem: Record<ArkGridAttr, boolean>;
 };
+
+function calculateGemSetPackTupleScore(
+  orderGemSetPack: GemSetPack | null,
+  chaosGemSetPack: GemSetPack | null,
+  isSupporter: boolean
+) {
+  const totalAttack = (orderGemSetPack?.att ?? 0) + (chaosGemSetPack?.att ?? 0);
+  const totalSkill = (orderGemSetPack?.skill ?? 0) + (chaosGemSetPack?.skill ?? 0);
+  const totalBoss = (orderGemSetPack?.boss ?? 0) + (chaosGemSetPack?.boss ?? 0);
+  const coeffs = isSupporter ? gemOptionLevelCoeffsSupporter : gemOptionLevelCoeffs;
+
+  return (
+    ((((((orderGemSetPack?.coreScore ?? 1) *
+      (chaosGemSetPack?.coreScore ?? 1) *
+      (Math.floor((totalAttack * coeffs[0]) / 120) + 10000)) /
+      10000) *
+      (Math.floor((totalSkill * coeffs[1]) / 120) + 10000)) /
+      10000) *
+      (Math.floor((totalBoss * coeffs[2]) / 120) + 10000)) /
+    10000
+  );
+}
+
+function summarizeGemSetPackTuple(answer: GemSetPackTuple): SolverGemSetPackTupleSummary {
+  return {
+    gsp1: answer.gsp1 ? { corePointTuple: gemSetPackPreviewKey(answer.gsp1) } : null,
+    gsp2: answer.gsp2 ? { corePointTuple: gemSetPackPreviewKey(answer.gsp2) } : null,
+    score: answer.score,
+  };
+}
+
+function getSideMaxStats(gssList: GemSet[][]): SolverSideMaxStats {
+  let attMax = 0;
+  let skillMax = 0;
+  let bossMax = 0;
+
+  for (const gss of gssList) {
+    attMax += getMaxStat(gss, 'att');
+    skillMax += getMaxStat(gss, 'skill');
+    bossMax += getMaxStat(gss, 'boss');
+  }
+
+  return { attMax, skillMax, bossMax };
+}
 
 function toCore(core: WorkerCore) {
   return new Core(core.energy, core.point, core.coeff);
@@ -180,25 +240,13 @@ function isGspNeedMoreGem(gsp: GemSetPack | null) {
       return false;
     }
 
-    let maxPoint = 0;
-    switch (gs.core.energy) {
-      case 9:
-        maxPoint = 10;
-        break;
-      case 12:
-        maxPoint = 14;
-        break;
-      case 15:
-      case 17:
-        maxPoint = 17;
-        break;
-    }
+    const maxPreviewPoint = Math.min(20, gs.core.coeff.length - 1);
 
-    if (maxPoint === 0) {
+    if (maxPreviewPoint <= 0) {
       return false;
     }
 
-    return gs.point < maxPoint;
+    return gs.point < maxPreviewPoint;
   });
 }
 
@@ -235,12 +283,24 @@ function solve(
   emitProgress(report, 'preparing', 0);
   const orderCores = rawOrderCores.map(toCore);
   const chaosCores = rawChaosCores.map(toCore);
+  const canReuseOrderSide = Boolean(precalculatedGsp?.order && precalculatedGsp.orderMaxStats);
+  const canReuseChaosSide = Boolean(precalculatedGsp?.chaos && precalculatedGsp.chaosMaxStats);
 
-  const { gems: orderGems } = convertToSolverGems(inOrderGems, isSupporter);
-  const { gems: chaosGems } = convertToSolverGems(inChaosGems, isSupporter);
+  const { gems: orderGems } = canReuseOrderSide
+    ? { gems: [] }
+    : convertToSolverGems(inOrderGems, isSupporter);
+  const { gems: chaosGems } = canReuseChaosSide
+    ? { gems: [] }
+    : convertToSolverGems(inChaosGems, isSupporter);
+  const sortedOrderGems = canReuseOrderSide ? [] : [...orderGems].sort((a, b) => a.req - b.req);
+  const sortedChaosGems = canReuseChaosSide ? [] : [...chaosGems].sort((a, b) => a.req - b.req);
 
-  const orderGssList = orderCores.map((core) => getPossibleGemSets(core, orderGems));
-  const chaosGssList = chaosCores.map((core) => getPossibleGemSets(core, chaosGems));
+  const orderGssList = canReuseOrderSide
+    ? []
+    : orderCores.map((core) => getPossibleGemSetsFromSortedGems(core, sortedOrderGems));
+  const chaosGssList = canReuseChaosSide
+    ? []
+    : chaosCores.map((core) => getPossibleGemSetsFromSortedGems(core, sortedChaosGems));
 
   if (perfectSolve) {
     for (const gssList of [orderGssList, chaosGssList]) {
@@ -267,16 +327,16 @@ function solve(
     }
   }
 
-  const allGssList = orderGssList.concat(chaosGssList);
-  let attMax = 0;
-  let skillMax = 0;
-  let bossMax = 0;
-
-  for (const gss of allGssList) {
-    attMax += getMaxStat(gss, 'att');
-    skillMax += getMaxStat(gss, 'skill');
-    bossMax += getMaxStat(gss, 'boss');
-  }
+  const builtGssList = orderGssList.concat(chaosGssList);
+  const orderMaxStats = canReuseOrderSide
+    ? precalculatedGsp!.orderMaxStats!
+    : getSideMaxStats(orderGssList);
+  const chaosMaxStats = canReuseChaosSide
+    ? precalculatedGsp!.chaosMaxStats!
+    : getSideMaxStats(chaosGssList);
+  const attMax = orderMaxStats.attMax + chaosMaxStats.attMax;
+  const skillMax = orderMaxStats.skillMax + chaosMaxStats.skillMax;
+  const bossMax = orderMaxStats.bossMax + chaosMaxStats.bossMax;
 
   const gemOptionCoeff = isSupporter ? gemOptionLevelCoeffsSupporter : gemOptionLevelCoeffs;
   const scoreMaps = [
@@ -285,7 +345,7 @@ function solve(
     buildScoreMap(gemOptionCoeff[2], bossMax),
   ];
 
-  for (const gss of allGssList) {
+  for (const gss of builtGssList) {
     for (const gs of gss) {
       gs.setScoreRange(scoreMaps);
     }
@@ -314,7 +374,10 @@ function solve(
       });
 
   if (onStep) {
-    onStep(orderGspList, chaosGspList);
+    onStep(orderGspList, chaosGspList, {
+      order: orderMaxStats,
+      chaos: chaosMaxStats,
+    });
   }
 
   emitProgress(report, 'searching_chaos_packs', 100);
@@ -350,9 +413,9 @@ function solve(
         total,
       });
       for (const gsp2 of gemSetPackSet[1]) {
-        const gspt = new GemSetPackTuple(gsp1, gsp2, isSupporter);
-        if (gspt.score > answer.score) {
-          answer = gspt;
+        const candidateScore = calculateGemSetPackTupleScore(gsp1, gsp2, isSupporter);
+        if (candidateScore > answer.score) {
+          answer = new GemSetPackTuple(gsp1, gsp2, isSupporter);
         }
       }
     }
@@ -455,6 +518,18 @@ function createPreviewGem(attr: ArkGridAttr, req: number, point: number): ArkGri
   };
 }
 
+function createPreviewCandidates(attr: ArkGridAttr) {
+  const result: ArkGridGem[] = [];
+
+  for (let gemPoint = 5; gemPoint >= 1; gemPoint--) {
+    for (let gemReq = 3; gemReq < 10; gemReq++) {
+      result.push(createPreviewGem(attr, gemReq, gemPoint));
+    }
+  }
+
+  return result;
+}
+
 function runSolve(payload: SolverRunPayload, report: ProgressReporter): SolverRunResult {
   const { orderCores, chaosCores, orderGems, chaosGems, isSupporter } = payload;
   const perfectOrderGems: ArkGridGem[] = [];
@@ -477,9 +552,15 @@ function runSolve(payload: SolverRunPayload, report: ProgressReporter): SolverRu
     chaosGems,
     {
       isSupporter,
-      onStep: (order, chaos) => {
-        precalculatedGspListOrder = { order };
-        precalculatedGspListChaos = { chaos };
+      onStep: (order, chaos, sideMaxStats) => {
+        precalculatedGspListOrder = {
+          order,
+          orderMaxStats: sideMaxStats.order,
+        };
+        precalculatedGspListChaos = {
+          chaos,
+          chaosMaxStats: sideMaxStats.chaos,
+        };
       },
     },
     report
@@ -505,20 +586,20 @@ function runSolve(payload: SolverRunPayload, report: ProgressReporter): SolverRu
     { attr: '혼돈', gsp: answer.gsp2 },
   ] satisfies { attr: ArkGridAttr; gsp: GemSetPack | null }[];
   const shouldSimulateLauncherGems = simulationTargets.some(({ gsp }) => Boolean(gsp));
-  const previewCandidateCountByAttr = new Map<ArkGridAttr, number>();
+  const previewCandidatesByAttr = new Map<ArkGridAttr, ArkGridGem[]>();
   let totalPreviewCandidateCount = 0;
 
   for (const { attr, gsp } of simulationTargets) {
     if (!gsp) {
-      previewCandidateCountByAttr.set(attr, 0);
+      previewCandidatesByAttr.set(attr, []);
       continue;
     }
 
     const currentKeyRaw = gemSetPackPreviewKey(gsp);
     const isMaxPreviewKey = currentKeyRaw.every((corePoint) => corePoint === 20);
-    const candidateCount = isMaxPreviewKey ? 0 : 35;
-    previewCandidateCountByAttr.set(attr, candidateCount);
-    totalPreviewCandidateCount += candidateCount;
+    const candidates = isMaxPreviewKey ? [] : createPreviewCandidates(attr);
+    previewCandidatesByAttr.set(attr, candidates);
+    totalPreviewCandidateCount += candidates.length;
   }
   let completedPreviewCandidateCount = 0;
 
@@ -536,33 +617,38 @@ function runSolve(payload: SolverRunPayload, report: ProgressReporter): SolverRu
 
     const currentKeyRaw = gemSetPackPreviewKey(gsp);
     const currentKey = currentKeyRaw.join(',');
-    const attrPreviewCandidateCount = previewCandidateCountByAttr.get(attr) ?? 0;
-    if (attrPreviewCandidateCount === 0) {
+    const attrPreviewCandidates = [...(previewCandidatesByAttr.get(attr) ?? [])];
+    const dominatedPreviewPoints = new Set<number>();
+    if (attrPreviewCandidates.length === 0) {
       continue;
     }
 
-    for (let gemReq = 3; gemReq < 10; gemReq++) {
-      for (let gemPoint = 5; gemPoint >= 1; gemPoint--) {
-        const newGem = createPreviewGem(attr, gemReq, gemPoint);
-        completedPreviewCandidateCount += 1;
-        const currentPreviewCandidateCount = completedPreviewCandidateCount;
+    for (const newGem of attrPreviewCandidates) {
+      const gemPoint = newGem.point;
 
-        emitProgress(
-          report,
-          'simulating_launcher_gems',
-          (currentPreviewCandidateCount / Math.max(totalPreviewCandidateCount, 1)) * 100,
-          {
-            attr,
-            current: currentPreviewCandidateCount,
-            total: totalPreviewCandidateCount,
-          }
-        );
+      if (dominatedPreviewPoints.has(gemPoint)) {
+        continue;
+      }
 
-        const nextSolve = solve(
-          orderCores,
-          chaosCores,
-          attr === '질서' ? [...orderGems, newGem] : orderGems,
-          attr === '혼돈' ? [...chaosGems, newGem] : chaosGems,
+      completedPreviewCandidateCount += 1;
+      const currentPreviewCandidateCount = completedPreviewCandidateCount;
+
+      emitProgress(
+        report,
+        'simulating_launcher_gems',
+        (currentPreviewCandidateCount / Math.max(totalPreviewCandidateCount, 1)) * 100,
+        {
+          attr,
+          current: currentPreviewCandidateCount,
+          total: totalPreviewCandidateCount,
+        }
+      );
+
+      const nextSolve = solve(
+        orderCores,
+        chaosCores,
+        attr === '질서' ? [...orderGems, newGem] : orderGems,
+        attr === '혼돈' ? [...chaosGems, newGem] : chaosGems,
           {
             isSupporter,
             precalculatedGsp:
@@ -570,29 +656,33 @@ function runSolve(payload: SolverRunPayload, report: ProgressReporter): SolverRu
           }
         );
 
-        const nextGsp = attr === '질서' ? nextSolve.answer.gsp1 : nextSolve.answer.gsp2;
-        if (!nextGsp) {
-          continue;
-        }
+      const nextGsp = attr === '질서' ? nextSolve.answer.gsp1 : nextSolve.answer.gsp2;
+      if (!nextGsp) {
+        dominatedPreviewPoints.add(gemPoint);
+        continue;
+      }
 
-        const newKeyRaw = gemSetPackPreviewKey(nextGsp);
-        const newKey = newKeyRaw.join(',');
-        const targetAdditionalGem = additionalGemResult[attr];
+      const newKeyRaw = gemSetPackPreviewKey(nextGsp);
+      const newKey = newKeyRaw.join(',');
+      const targetAdditionalGem = additionalGemResult[attr];
+      const previewCandidateImprovedAnswer = newKey !== currentKey && nextSolve.answer.score > answer.score;
 
-        if (newKey !== currentKey && nextSolve.answer.score > answer.score) {
-          if (targetAdditionalGem[newKey]) {
-            targetAdditionalGem[newKey].gems.push(newGem);
-            if (targetAdditionalGem[newKey].score < nextSolve.answer.score) {
-              targetAdditionalGem[newKey].score = nextSolve.answer.score;
-            }
-          } else {
-            targetAdditionalGem[newKey] = {
-              corePointTuple: newKeyRaw,
-              gems: [newGem],
-              score: nextSolve.answer.score,
-            };
+      if (previewCandidateImprovedAnswer) {
+        if (targetAdditionalGem[newKey]) {
+          targetAdditionalGem[newKey].gems.push(newGem);
+          if (targetAdditionalGem[newKey].score < nextSolve.answer.score) {
+            targetAdditionalGem[newKey].score = nextSolve.answer.score;
           }
+        } else {
+          targetAdditionalGem[newKey] = {
+            corePointTuple: newKeyRaw,
+            gems: [newGem],
+            score: nextSolve.answer.score,
+          };
         }
+      } else {
+        // Same point and higher requirement is strictly less flexible, so later candidates cannot improve either.
+        dominatedPreviewPoints.add(gemPoint);
       }
     }
   }
@@ -604,7 +694,7 @@ function runSolve(payload: SolverRunPayload, report: ProgressReporter): SolverRu
 
   return {
     assignedGemIndexes: solved.assignedGemIndexes,
-    gemSetPackTuple: answer,
+    gemSetPackTuple: summarizeGemSetPackTuple(answer),
     scoreSet: {
       score,
       bestScore,

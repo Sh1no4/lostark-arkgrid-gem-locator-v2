@@ -37,6 +37,7 @@ export class CaptureController {
     reject: (reason: StartCaptureErrorType) => void;
   } | null = null;
   private awaitFrameCompletion: (() => void) | null = null;
+  private stopNotificationQueued: boolean = false;
 
   // 외부 등록 콜백
   onFrameDone: ((gemAttr: ArkGridAttr, gems: ArkGridGem[]) => void) | null = null; // 분석 완료
@@ -57,6 +58,50 @@ export class CaptureController {
   private postMessage(msg: CaptureWorkerRequest) {
     if (!this.worker) throw Error('worker is not set');
     this.worker.postMessage(msg);
+  }
+
+  private releaseCaptureResources() {
+    this.awaitWorkerInitialization = null;
+    const awaitFrameCompletion = this.awaitFrameCompletion;
+    this.awaitFrameCompletion = null;
+    awaitFrameCompletion?.();
+
+    const reader = this.reader;
+    this.reader = null;
+    if (reader) {
+      try {
+        void reader.cancel().catch(() => {});
+      } catch {
+        // Some browsers throw when canceling an already detached reader.
+      }
+      try {
+        reader.releaseLock();
+      } catch {
+        // Releasing a reader with a pending read can throw; canceling above still breaks the stream.
+      }
+    }
+
+    const track = this.track;
+    this.track = null;
+    track?.stop();
+
+    const worker = this.worker;
+    this.worker = null;
+    worker?.terminate();
+  }
+
+  private notifyStopOnce() {
+    if (this.stopNotificationQueued) {
+      return;
+    }
+
+    this.stopNotificationQueued = true;
+    const onStop = this.onStop;
+    if (onStop) {
+      queueMicrotask(() => {
+        onStop();
+      });
+    }
   }
 
   private handleWorkerMessage(e: MessageEvent<CaptureWorkerResponse>) {
@@ -112,7 +157,6 @@ export class CaptureController {
 
       case 'debug':
         try {
-          if (data.message) console.log(data.message);
           if (data.image && this.debugCanvas) {
             if (this.state == 'recording') {
               this.debugCanvas.width = data.image.width;
@@ -184,6 +228,7 @@ export class CaptureController {
 
       // loading으로 전환 (lock)
       this.state = 'loading';
+      this.stopNotificationQueued = false;
       this.recognitionLocale = recognitionLocale;
 
       // worker 생성 이후 handler 등록
@@ -234,6 +279,7 @@ export class CaptureController {
     } catch (err) {
       // 초기화 도중 에러 발생하면 분류해서 onStartCaptureError 불러줌
       const classified = this.classifyCaptureError(err);
+      this.releaseCaptureResources();
       this.onStartCaptureError?.(classified);
     } finally {
       // 시작에 실패했을 경우 다시 idle로
@@ -245,52 +291,55 @@ export class CaptureController {
 
   private async loop() {
     // state가 recording이라면, reader로부터 프레임을 읽어서 worker에게 전달 및 결과를 기다린다.
-    while (this.state == 'recording') {
-      if (!this.reader) {
-        throw Error('reader not exists');
-      }
-      let value: VideoFrame | undefined;
-      try {
-        if (!this.worker) throw Error('worker not exists');
-        const result = await this.reader.read();
-        value = result.value;
-        const done = result.done;
-        if (done) break; // 사용자가 화면 공유 중단시 여기서 break
-        if (!value) break;
+    try {
+      while (this.state == 'recording') {
+        const reader = this.reader;
+        const worker = this.worker;
+        if (!reader || !worker) {
+          break;
+        }
 
-        // 분석이 끝나면 resolve되는 promise 생성
-        const waitForAnalysis = new Promise<void>((resolve) => {
-          this.awaitFrameCompletion = resolve;
-        });
-        // 현재 frame을 postMessage
-        this.worker.postMessage(
-          {
-            type: 'frame',
-            frame: value,
-            drawDebug: this.drawDebug,
-            detectionMargin: this.detectionMargin,
-            recognitionLocale: this.recognitionLocale,
-          } satisfies CaptureWorkerRequest,
-          [value]
-        );
-        value = undefined;
-        // 주의: value 소유권은 worker에게 넘어갔으니 더 이상 건드리면 안 되기에 undefined
-        await waitForAnalysis;
-      } finally {
-        // 모종의 사유로 value의 소유권이 넘어가지 않았으면 controller에서 종료
-        value?.close();
+        let value: VideoFrame | undefined;
+        try {
+          const result = await reader.read();
+          value = result.value;
+          const done = result.done;
+          if (done || this.state !== 'recording') break; // 사용자가 화면 공유 중단시 여기서 break
+          if (!value) break;
+
+          // 분석이 끝나면 resolve되는 promise 생성
+          const waitForAnalysis = new Promise<void>((resolve) => {
+            this.awaitFrameCompletion = resolve;
+          });
+          // 현재 frame을 postMessage
+          worker.postMessage(
+            {
+              type: 'frame',
+              frame: value,
+              drawDebug: this.drawDebug,
+              detectionMargin: this.detectionMargin,
+              recognitionLocale: this.recognitionLocale,
+            } satisfies CaptureWorkerRequest,
+            [value]
+          );
+          value = undefined;
+          // 주의: value 소유권은 worker에게 넘어갔으니 더 이상 건드리면 안 되기에 undefined
+          await waitForAnalysis;
+        } finally {
+          // 모종의 사유로 value의 소유권이 넘어가지 않았으면 controller에서 종료
+          value?.close();
+        }
+      }
+    } catch {
+      // stopCapture() can cancel the stream while read() is pending; treat it as a normal stop.
+    } finally {
+      // loop가 탈출되면 idle로 설정
+      if (this.state !== 'idle') {
+        this.releaseCaptureResources();
+        this.state = 'idle';
+        this.notifyStopOnce();
       }
     }
-    // loop가 탈출되면 idle로 설정
-    this.track?.stop();
-    this.track = null;
-    const onStop = this.onStop;
-    if (onStop) {
-      queueMicrotask(() => {
-        onStop();
-      });
-    }
-    this.state = 'idle';
   }
 
   async stopCapture() {
@@ -300,6 +349,9 @@ export class CaptureController {
     // 너무 장황해지는 거 같아서 loop 종료로...
     if (this.state === 'recording') {
       this.state = 'closing'; // 추후 loop 탈출 이후 idle로 가는 것을 기대
+      this.releaseCaptureResources();
+      this.state = 'idle';
+      this.notifyStopOnce();
     }
   }
   isIdle() {

@@ -98,6 +98,21 @@
       zh_cn: '混沌核心优化失败',
     }[locale]
   );
+  const LProgressBarLabel = $derived(
+    {
+      ko_kr: '최적화 전체 진행률',
+      en_us: 'Overall optimization progress',
+      zh_cn: '整体优化进度',
+    }[locale]
+  );
+  const LStageProgress = $derived(
+    {
+      ko_kr: '현재 단계',
+      en_us: 'Current stage',
+      zh_cn: '当前阶段',
+    }[locale]
+  );
+  const optimizeTooltipId = 'optimization-snapshot-tooltip';
 
   let solveAfter = $state<SolveAfter | undefined>(profile.solveInfo.after);
   let activeProfileName = $state(profile.characterName);
@@ -285,11 +300,7 @@
       return '';
     }
 
-    if (progress.stage !== 'simulating_launcher_gems') {
-      return progress.stage;
-    }
-
-    return `${progress.stage}:${progress.attr ?? ''}`;
+    return progress.stage;
   }
 
   function clampProgressPercent(percent: number) {
@@ -377,21 +388,33 @@
     <div class="optimize-hint">
       {LOptimizeHint}
       <span class="tooltip">
-        <i class="fa-solid fa-circle-info info-icon"></i>
-        <span class="tooltip-text">{LOptimizeTooltip}</span>
+        <button
+          type="button"
+          class="tooltip-trigger"
+          aria-label={LOptimizeHint}
+          aria-describedby={optimizeTooltipId}
+        >
+          <i class="fa-solid fa-circle-info info-icon" aria-hidden="true"></i>
+        </button>
+        <span id={optimizeTooltipId} class="tooltip-text">{LOptimizeTooltip}</span>
       </span>
     </div>
     {#if solveProgress || progressLog.length > 0}
-      <div class="solve-progress">
+      <div class="solve-progress" role="status" aria-live="polite">
         <div class="title">{LProgressTitle}</div>
         {#if solveProgress}
           <div class="progress-label">
             <span>{getProgressLabel(solveProgress)}</span>
+            <span>{clampProgressPercent(solveProgress.totalPercent)}%</span>
+          </div>
+          <div class="progress-stage-label">
+            <span>{LStageProgress}</span>
             <span>{solveProgress.stagePercent}%</span>
           </div>
           <div
             class="progress-bar"
             role="progressbar"
+            aria-label={LProgressBarLabel}
             aria-valuemin="0"
             aria-valuemax="100"
             aria-valuenow={clampProgressPercent(solveProgress.totalPercent)}
@@ -525,6 +548,15 @@
     gap: 1rem;
     min-width: 0;
     font-size: 0.95rem;
+    font-weight: 700;
+  }
+  .progress-stage-label {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    min-width: 0;
+    color: var(--subtle-text);
+    font-size: 0.82rem;
   }
   .progress-bar {
     box-sizing: border-box;

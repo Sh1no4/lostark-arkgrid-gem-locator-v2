@@ -134,6 +134,17 @@
       },
     }[locale]
   );
+  const LLoadingStatus = $derived(
+    {
+      ko_kr: '인식 엔진을 준비하고 있습니다.',
+      en_us: 'Preparing the recognition engine.',
+      zh_cn: '正在准备识别引擎。',
+    }[locale]
+  );
+  const recognitionLocaleMenuId = 'recognition-locale-options';
+  const diagnosticsPanelId = 'recognition-diagnostics-panel';
+  const detectionMarginInputId = 'recognition-detection-margin-slider';
+  const supportedClientTooltipId = 'recognition-supported-client-tooltip';
   let debugCanvas: HTMLCanvasElement | null;
   let totalOrderGems = $state<ArkGridGem[]>([]);
   let totalChaosGems = $state<ArkGridGem[]>([]);
@@ -198,6 +209,38 @@
     const totalGems = gem.gemAttr == '질서' ? totalOrderGems : totalChaosGems;
     const gemIndex = totalGems.findIndex((recognizedGem) => isSameArkGridGem(recognizedGem, gem));
     if (gemIndex !== -1) totalGems.splice(gemIndex, 1);
+  }
+
+  function findBestContiguousGemMatch(
+    totalGems: ArkGridGem[],
+    currentGems: ArkGridGem[],
+    getCurrentGemIndex: (offset: number) => number,
+    getTotalGemIndex: (startIndex: number, offset: number) => number
+  ): { index: number; count: number } | null {
+    let bestMatch: { index: number; count: number } | null = null;
+
+    for (let totalGemIndex = 0; totalGemIndex < totalGems.length; totalGemIndex++) {
+      if (!isSameArkGridGem(totalGems[totalGemIndex], currentGems[getCurrentGemIndex(0)])) {
+        continue;
+      }
+
+      let sameCount = 1;
+      for (let offset = 1; offset < currentGems.length; offset++) {
+        const nextTotalGemIndex = getTotalGemIndex(totalGemIndex, offset);
+        if (nextTotalGemIndex < 0 || nextTotalGemIndex >= totalGems.length) break;
+        if (isSameArkGridGem(totalGems[nextTotalGemIndex], currentGems[getCurrentGemIndex(offset)])) {
+          sameCount += 1;
+        } else {
+          break;
+        }
+      }
+
+      if (!bestMatch || sameCount > bestMatch.count) {
+        bestMatch = { index: totalGemIndex, count: sameCount };
+      }
+    }
+
+    return bestMatch;
   }
 
   function resetRecognitionSession() {
@@ -274,32 +317,12 @@
           return;
         }
 
-        // Q. 내 화면의 첫 젬이 전체 젬의 어디에 위치하는가?
-        // 동일한 옵션의 젬이 2개 이상 있는 경우를 위해 후보를 모두 저장함
-        let foundIndices: number[] = [];
-        for (let i = 0; i < totalGems.length; i++) {
-          if (isSameArkGridGem(totalGems[i], availableCurrentGems[0])) {
-            foundIndices.push(i);
-          }
-        }
-        
-        // 找到最佳匹配（匹配数量最多的那个）
-        let bestMatch: { index: number; count: number } | null = null;
-        for (let foundIndex of foundIndices) {
-          let sameCount = 1;
-          for (let i = 1; i < availableCurrentGems.length; i++) {
-            if (foundIndex + i >= totalGems.length) break;
-            if (isSameArkGridGem(totalGems[foundIndex + i], availableCurrentGems[i])) {
-              sameCount += 1;
-            } else {
-              break;
-            }
-          }
-          
-          if (!bestMatch || sameCount > bestMatch.count) {
-            bestMatch = { index: foundIndex, count: sameCount };
-          }
-        }
+        const bestMatch = findBestContiguousGemMatch(
+          totalGems,
+          availableCurrentGems,
+          (offset) => offset,
+          (startIndex, offset) => startIndex + offset
+        );
 
         // 只使用最佳匹配进行添加
         if (bestMatch) {
@@ -337,33 +360,15 @@
           }
         }
 
-        if (foundIndices.length == 0) {
+        if (!bestMatch) {
           // 만약 내 화면의 첫 젬이 아예 없다면 거꾸로 스크롤하는 것이라고 가정
           // 마지막 젬이 알고 있는지 확인
-          let reverseFoundIndices: number[] = [];
-          for (let i = 0; i < totalGems.length; i++) {
-            if (isSameArkGridGem(totalGems[i], availableCurrentGems[8])) {
-              reverseFoundIndices.push(i);
-            }
-          }
-          
-          // 找到反向滚动的最佳匹配
-          let bestReverseMatch: { index: number; count: number } | null = null;
-          for (let foundIndex of reverseFoundIndices) {
-            let sameCount = 1;
-            for (let i = 1; i < availableCurrentGems.length; i++) {
-              if (foundIndex - i < 0) break;
-              if (isSameArkGridGem(totalGems[foundIndex - i], availableCurrentGems[8 - i])) {
-                sameCount += 1;
-              } else {
-                break;
-              }
-            }
-            
-            if (!bestReverseMatch || sameCount > bestReverseMatch.count) {
-              bestReverseMatch = { index: foundIndex, count: sameCount };
-            }
-          }
+          const bestReverseMatch = findBestContiguousGemMatch(
+            totalGems,
+            availableCurrentGems,
+            (offset) => 8 - offset,
+            (startIndex, offset) => startIndex - offset
+          );
           
           if (bestReverseMatch) {
             const { index: foundIndex, count: sameCount } = bestReverseMatch;
@@ -464,8 +469,9 @@
 
 <div class="panel recognition-panel">
   {#if isLoading}
-    <div class="overlay">
-      <div class="spinner"></div>
+    <div class="overlay" role="status" aria-live="polite" aria-label={LLoadingStatus}>
+      <div class="spinner" aria-hidden="true"></div>
+      <span class="sr-only">{LLoadingStatus}</span>
     </div>
   {/if}
   <div class="recognition-header">
@@ -473,8 +479,15 @@
       <span class="status-dot" class:online={isRecording} class:offline={!isRecording}></span>
       <span class="recognition-title-text">{LTitle[locale]}</span>
       <span class="tooltip">
-        <i class="fa-solid fa-circle-info info-icon"></i>
-        <span class="tooltip-text">{LSupportedClient}</span>
+        <button
+          type="button"
+          class="tooltip-trigger"
+          aria-label={LTitle[locale]}
+          aria-describedby={supportedClientTooltipId}
+        >
+          <i class="fa-solid fa-circle-info info-icon" aria-hidden="true"></i>
+        </button>
+        <span id={supportedClientTooltipId} class="tooltip-text">{LSupportedClient}</span>
       </span>
     </div>
   </div>
@@ -510,6 +523,8 @@
             disabled={isRecording}
             aria-haspopup="listbox"
             aria-expanded={showRecognitionLocaleMenu}
+            aria-controls={recognitionLocaleMenuId}
+            aria-label={LRecognitionLanguage[locale]}
             onclick={() => (showRecognitionLocaleMenu = !showRecognitionLocaleMenu)}
           >
             <span class="recognition-locale-current"
@@ -518,7 +533,12 @@
             <span class="recognition-locale-arrow" aria-hidden="true"></span>
           </button>
           {#if showRecognitionLocaleMenu && !isRecording}
-            <div class="recognition-locale-options" role="listbox">
+            <div
+              class="recognition-locale-options"
+              id={recognitionLocaleMenuId}
+              role="listbox"
+              aria-label={LRecognitionLanguage[locale]}
+            >
               {#each supportedGemRecognitionLocales as supportedRecognitionLocale}
                 <button
                   type="button"
@@ -541,12 +561,17 @@
       <div class="recognition-status" class:recording={isRecording}>
         {isRecording ? LRecordingStatus : LReadyStatus}
       </div>
-      <button class="diagnostics-toggle" onclick={() => (showDiagnostics = !showDiagnostics)}>
+      <button
+        class="diagnostics-toggle"
+        aria-expanded={showDiagnostics}
+        aria-controls={diagnosticsPanelId}
+        onclick={() => (showDiagnostics = !showDiagnostics)}
+      >
         ⚙ {LDiagnostics}
       </button>
     </section>
 
-    <div hidden={!showDiagnostics}>
+    <div id={diagnosticsPanelId} hidden={!showDiagnostics}>
       <div class="debug-screen">
         <button class:active={isDebugging} onclick={toggleDrawDebug}>
           🔨 {isDebugging ? LHideScreen[locale] : LShowScreen[locale]}
@@ -561,7 +586,7 @@
         </button>
         <div class="threshold-controller">
           <input
-            id="slider"
+            id={detectionMarginInputId}
             type="range"
             min="0"
             max="2"
@@ -571,7 +596,7 @@
               await updateControllerDetectionMargin(detectionMargin / 10);
             }}
           />
-          <label for="slider"
+          <label for={detectionMarginInputId}
             >{LThreshold[locale]}: {LDetectionMargin[locale][detectionMargin]}</label
           >
         </div>
@@ -937,7 +962,7 @@
     gap: 1rem;
   }
   .debug-screen > .threshold-controller > label {
-    width: 20rem;
+    width: min(20rem, 100%);
   }
   .debug-screen > .threshold-controller > input {
     transform: translateY(2px);

@@ -67,32 +67,47 @@ type Deferred = {
 
 export class SolverController {
   private state: 'idle' | 'running' = 'idle';
-  private worker: Worker;
+  private worker: Worker | null = null;
   private pending: Deferred | null = null;
   onProgress: ((progress: SolverProgress) => void) | null = null;
 
-  constructor() {
-    this.worker = new Worker(new URL('./solverWorker.ts', import.meta.url), {
+  private createWorker() {
+    const worker = new Worker(new URL('./solverWorker.ts', import.meta.url), {
       type: 'module',
     });
-    this.worker.onmessage = (e: MessageEvent<SolverWorkerResponse>) => {
+    worker.onmessage = (e: MessageEvent<SolverWorkerResponse>) => {
       this.handleWorkerMessage(e);
     };
-    this.worker.onerror = (e) => {
+    worker.onerror = (e) => {
       this.handleWorkerError(e);
     };
+    this.worker = worker;
+    return worker;
+  }
+
+  private disposeWorker() {
+    if (!this.worker) {
+      return;
+    }
+
+    this.worker.terminate();
+    this.worker = null;
   }
 
   private postMessage(msg: SolverWorkerRequest) {
-    this.worker.postMessage(msg);
+    const worker = this.worker ?? this.createWorker();
+    worker.postMessage(msg);
   }
 
-  private settlePending(settler: (pending: Deferred) => void) {
+  private settlePending(settler: (pending: Deferred) => void, releaseWorker = false) {
     const pending = this.pending;
     this.pending = null;
     this.state = 'idle';
     if (pending) {
       settler(pending);
+    }
+    if (releaseWorker) {
+      this.disposeWorker();
     }
   }
 
@@ -106,12 +121,12 @@ export class SolverController {
       case 'runSolve:done':
         this.settlePending((pending) => {
           pending.resolve(data.result);
-        });
+        }, true);
         break;
       case 'runSolve:error':
         this.settlePending((pending) => {
           pending.reject(new Error(data.message));
-        });
+        }, true);
         break;
     }
   }
@@ -119,7 +134,7 @@ export class SolverController {
   private handleWorkerError(error: ErrorEvent) {
     this.settlePending((pending) => {
       pending.reject(error.error ?? new Error(error.message));
-    });
+    }, true);
   }
 
   runSolve(profile: CharacterProfile) {
@@ -147,7 +162,7 @@ export class SolverController {
       } catch (error) {
         this.settlePending((pending) => {
           pending.reject(error);
-        });
+        }, true);
       }
     });
   }
@@ -156,6 +171,6 @@ export class SolverController {
     this.settlePending((pending) => {
       pending.reject(new Error('solver controller disposed'));
     });
-    this.worker.terminate();
+    this.disposeWorker();
   }
 }

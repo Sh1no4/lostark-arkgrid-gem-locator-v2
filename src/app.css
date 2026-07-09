@@ -60,6 +60,7 @@
   --reference-border: #e7d8c6;
   --reference-accent: #b45f19;
   --reference-accent-hover: #9f4f10;
+  --reference-focus: #b45f19;
   --reference-warning: #dba129;
   --reference-danger: #f04452;
   --reference-success: #20c46b;
@@ -83,6 +84,7 @@
   --reference-border: #4a3928;
   --reference-accent: #d08a3d;
   --reference-accent-hover: #e09a4f;
+  --reference-focus: #e09a4f;
   --reference-warning: #d6a33d;
   --reference-danger: #f06a73;
   --reference-success: #39c979;
@@ -202,6 +204,16 @@ button:hover {
   background-color: var(--card);
 }
 
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--reference-focus, var(--primary)) 72%, transparent);
+  outline-offset: 3px;
+}
+
 button:disabled {
   /* 금지 표시 커서 */
   cursor: not-allowed;
@@ -217,7 +229,6 @@ button:disabled {
   font-size: 1.4rem;
 }
 
-/* OpenAPI 사용 중 비활성화 */
 .overlay {
   position: absolute;
   inset: 0;
@@ -238,6 +249,30 @@ button:disabled {
   animation: spin 1s linear infinite;
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+  }
+}
+
 @keyframes spin {
   to {
     transform: rotate(360deg);
@@ -254,12 +289,30 @@ input[type='radio']:disabled {
   font-style: normal;
 }
 
+.tooltip-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.75rem;
+  min-height: 1.75rem;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  line-height: 1;
+}
+
+.tooltip-trigger:hover {
+  background: color-mix(in srgb, var(--reference-focus, var(--primary)) 12%, transparent);
+}
+
 .tooltip {
   position: relative;
 }
 
 .tooltip-text {
-  width: 17rem;
+  width: min(17rem, calc(100vw - 2rem));
   visibility: hidden;
   opacity: 0;
   position: absolute;
@@ -267,7 +320,8 @@ input[type='radio']:disabled {
   left: 50%;
   transform: translateX(-50%);
   background: var(--bg);
-  color: var(--font);
+  color: var(--text);
+  border: 1px solid var(--border);
   padding: 0.5rem;
   border-radius: 6px;
   font-size: 0.9rem;
@@ -279,7 +333,14 @@ input[type='radio']:disabled {
   z-index: 2000;
 }
 
-.tooltip:hover .tooltip-text {
+@media (prefers-reduced-motion: reduce) {
+  .tooltip-text {
+    transition: none;
+  }
+}
+
+.tooltip:hover .tooltip-text,
+.tooltip:focus-within .tooltip-text {
   visibility: visible;
   opacity: 1;
 }

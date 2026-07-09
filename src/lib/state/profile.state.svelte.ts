@@ -12,7 +12,7 @@ import {
   createCore,
 } from '../models/arkGridCores';
 import { type ArkGridGem, determineGemGrade } from '../models/arkGridGems';
-import type { GemSetPackTuple } from '../solver/models';
+import type { SolverGemSetPackTupleSummary } from '../solver/types';
 import { addNewProfile, appConfig, getProfile, initArkGridCores } from './appConfig.state.svelte';
 
 export let currentProfileName = persistedState<string>('currentProfileName', DEFAULT_PROFILE_NAME);
@@ -48,7 +48,7 @@ export type SolveAnswerScoreSet = {
 };
 export type SolveAnswer = {
   assignedGems: ArkGridGem[][];
-  gemSetPackTuple: GemSetPackTuple;
+  gemSetPackTuple: SolverGemSetPackTupleSummary;
 };
 export type AdditionalGemResult = Record<
   ArkGridAttr,
@@ -73,6 +73,70 @@ export type SolveInfo = {
   before: SolveBefore;
   after?: SolveAfter;
 };
+
+function stepwisePreviewCorePoint(value: unknown) {
+  const point = typeof value === 'number' ? value : 0;
+  if (point >= 20) return 20;
+  if (point >= 19) return 19;
+  if (point >= 18) return 18;
+  if (point >= 17) return 17;
+  if (point >= 14) return 14;
+  if (point >= 10) return 10;
+  return 0;
+}
+
+function sanitizeCorePointTuple(value: unknown): [number, number, number] | null {
+  if (!Array.isArray(value) || value.length < 3) {
+    return null;
+  }
+
+  return [
+    stepwisePreviewCorePoint(value[0]),
+    stepwisePreviewCorePoint(value[1]),
+    stepwisePreviewCorePoint(value[2]),
+  ];
+}
+
+function summarizePersistedGemSetPack(value: unknown) {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
+  const gemSetPack = value as {
+    corePointTuple?: unknown;
+    gs1?: { point?: unknown } | null;
+    gs2?: { point?: unknown } | null;
+    gs3?: { point?: unknown } | null;
+  };
+  const existingCorePointTuple = sanitizeCorePointTuple(gemSetPack.corePointTuple);
+
+  return {
+    corePointTuple: existingCorePointTuple ?? [
+      stepwisePreviewCorePoint(gemSetPack.gs1?.point),
+      stepwisePreviewCorePoint(gemSetPack.gs2?.point),
+      stepwisePreviewCorePoint(gemSetPack.gs3?.point),
+    ],
+  };
+}
+
+function summarizePersistedGemSetPackTuple(value: unknown): SolverGemSetPackTupleSummary | null {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
+  const gemSetPackTuple = value as {
+    gsp1?: unknown;
+    gsp2?: unknown;
+    score?: unknown;
+  };
+
+  return {
+    gsp1: summarizePersistedGemSetPack(gemSetPackTuple.gsp1),
+    gsp2: summarizePersistedGemSetPack(gemSetPackTuple.gsp2),
+    score: typeof gemSetPackTuple.score === 'number' ? gemSetPackTuple.score : 0,
+  };
+}
+
 export function updateSolveAnswer(solveAnswer: SolveAnswer) {
   // 현재 프로필의 solve after에 solve answer 설정
   const profile = getCurrentProfile();
@@ -157,35 +221,84 @@ export function initNewProfile(name: string): CharacterProfile {
   };
 }
 
+function isObjectRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function sanitizeCoreRecords(value: unknown): CharacterProfile['cores'] {
+  const defaultCores = initArkGridCores();
+  const existingCores = isObjectRecord(value) ? value : {};
+
+  for (const attr of Object.values(ArkGridAttrs)) {
+    const existingCoresByType = isObjectRecord(existingCores[attr]) ? existingCores[attr] : {};
+
+    for (const ctype of Object.values(ArkGridCoreTypes)) {
+      const existingCore = existingCoresByType[ctype];
+      if (!isObjectRecord(existingCore)) {
+        continue;
+      }
+
+      defaultCores[attr][ctype] = existingCore as ArkGridCore;
+      if (defaultCores[attr][ctype]?.goalPoint === undefined) {
+        defaultCores[attr][ctype].goalPoint = 0;
+      }
+    }
+  }
+
+  return defaultCores;
+}
+
+function sanitizeSolveInfo(value: unknown): SolveInfo {
+  const existingSolveInfo = isObjectRecord(value) ? value : {};
+  const existingBefore = isObjectRecord(existingSolveInfo.before) ? existingSolveInfo.before : {};
+  const coreGoalPoint = Array.isArray(existingBefore.coreGoalPoint)
+    ? existingBefore.coreGoalPoint
+    : [0, 0, 0, 0, 0, 0];
+
+  const solveInfo: SolveInfo = {
+    before: { coreGoalPoint },
+  };
+
+  if (isObjectRecord(existingSolveInfo.after)) {
+    solveInfo.after = existingSolveInfo.after as SolveAfter;
+  }
+
+  return solveInfo;
+}
+
 export function migrateProfile(profile: Partial<CharacterProfile>) {
   // 업데이트로 추가되는 required 필드를 추가
 
+  if (typeof profile.characterName !== 'string') {
+    profile.characterName = DEFAULT_PROFILE_NAME;
+  }
+
+  if (!isObjectRecord(profile.gems)) {
+    profile.gems = {
+      orderGems: [],
+      chaosGems: [],
+    };
+  } else {
+    profile.gems.orderGems = Array.isArray(profile.gems.orderGems) ? profile.gems.orderGems : [];
+    profile.gems.chaosGems = Array.isArray(profile.gems.chaosGems) ? profile.gems.chaosGems : [];
+  }
+
   // 1. profile.isSupporter
-  if (profile.isSupporter === undefined) {
+  if (typeof profile.isSupporter !== 'boolean') {
     // console.log("isSupporter 정의 안돼있어서 추가!")
     profile.isSupporter = false;
   }
   // 2. profile.solveInfo
-  if (profile.solveInfo === undefined) {
-    // console.log(profile, "solveInfo추가!")
-    profile.solveInfo = {
-      before: { coreGoalPoint: [0, 0, 0, 0, 0, 0] },
-    };
+  profile.solveInfo = sanitizeSolveInfo(profile.solveInfo);
+
+  const persistedGemSetPackTuple = profile.solveInfo.after?.solveAnswer?.gemSetPackTuple;
+  const summarizedGemSetPackTuple = summarizePersistedGemSetPackTuple(persistedGemSetPackTuple);
+  if (summarizedGemSetPackTuple && profile.solveInfo.after?.solveAnswer) {
+    profile.solveInfo.after.solveAnswer.gemSetPackTuple = summarizedGemSetPackTuple;
   }
 
   // 3. core.goalPoint
-  for (const attr of Object.values(ArkGridAttrs)) {
-    for (const ctype of Object.values(ArkGridCoreTypes)) {
-      if (profile.cores) {
-        // 당연히 있겠지만...
-        const core = profile.cores[attr][ctype];
-        if (core && core.goalPoint === undefined) {
-          // console.log(core, "에 goalpoint 추가!")
-          core.goalPoint = 0;
-        }
-      }
-    }
-  }
+  profile.cores = sanitizeCoreRecords(profile.cores);
 }
 
 export function getCurrentProfile() {

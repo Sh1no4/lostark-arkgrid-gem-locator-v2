@@ -8,7 +8,7 @@
   import AppToolbar from './components/Header/AppToolbar.svelte';
   import SolvePanel from './components/SolvePanel.svelte';
   import { type LocalizationName } from './lib/constants/enums';
-  import { appConfig, enableDarkMode, toggleUI } from './lib/state/appConfig.state.svelte';
+  import { appConfig, enableDarkMode } from './lib/state/appConfig.state.svelte';
   import { appLocale, setLocale } from './lib/state/locale.state.svelte';
   import { type CharacterProfile, getCurrentProfile } from './lib/state/profile.state.svelte';
 
@@ -57,12 +57,6 @@
     if (prefersDark) {
       enableDarkMode();
     }
-
-    // debug CLI
-    (window as any).debug = () => {
-      toggleUI('debugMode');
-      console.log('현재 디버그 모드:', appConfig.current.uiConfig.debugMode);
-    };
 
     // 언어 감지
     const lang = navigator.language.toLowerCase(); // 예: 'ko-KR' 또는 'en-US'

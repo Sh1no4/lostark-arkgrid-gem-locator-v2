@@ -20,8 +20,13 @@ export function getMaxStat(gss: GemSet[], statType: 'att' | 'skill' | 'boss') {
 
 export function getPossibleGemSets(core: Core, gems: Gem[]): GemSet[] {
   // 주어진 gems을 사용해서 요구하는 energy와 point를 모두 충족하는 집합을 반환합니다.
-  const n = gems.length;
-  const g = [...gems].sort((a, b) => a.req - b.req);
+  return getPossibleGemSetsFromSortedGems(core, [...gems].sort((a, b) => a.req - b.req));
+}
+
+export function getPossibleGemSetsFromSortedGems(core: Core, sortedGems: Gem[]): GemSet[] {
+  // sortedGems must be sorted by req ascending so energy break conditions remain valid.
+  const n = sortedGems.length;
+  const g = sortedGems;
   const energy = core.energy;
   const point = core.point;
   const result: GemSet[] = [];
@@ -75,8 +80,25 @@ export function getBestGemSetPacks(
   if (gssList.length > 3) throw Error('length of gsss should be one of 1, 2, 3');
   const [gss1, gss2, gss3] = gssList;
 
-  let answer = [];
+  let answer: GemSetPack[] = [];
   let targetMin = 0; // 현재까지 찾은 배치 중 전투력 범위의 하한(min)의 가장 큰 값
+  let lastCompactedAnswerLength = 0;
+
+  function compactAnswers(force = false) {
+    if (!force && answer.length < Math.max(8192, lastCompactedAnswerLength * 2)) {
+      return;
+    }
+
+    let keptAnswerCount = 0;
+    for (const gemSetPack of answer) {
+      if (gemSetPack.maxScore >= targetMin) {
+        answer[keptAnswerCount] = gemSetPack;
+        keptAnswerCount += 1;
+      }
+    }
+    answer.length = keptAnswerCount;
+    lastCompactedAnswerLength = keptAnswerCount;
+  }
 
   // validate
   [gss1, gss2, gss3].forEach((gss) => {
@@ -217,6 +239,7 @@ export function getBestGemSetPacks(
 
         if (gsp.minScore > targetMin) {
           targetMin = gsp.minScore;
+          compactAnswers();
         }
       }
     }
@@ -250,6 +273,7 @@ export function getBestGemSetPacks(
           }
           if (minScore > targetMin) {
             targetMin = minScore;
+            compactAnswers();
           }
         }
       }
@@ -257,7 +281,7 @@ export function getBestGemSetPacks(
   }
   // console.log('캐시 hit', hitCount, 'miss', missCount, hitCount / (hitCount + missCount));
   // maxScore이 targetMin보다 작은 경우엔 아예 후보조차 아님
-  answer = answer.filter((g) => g.maxScore >= targetMin);
+  compactAnswers(true);
   answer.sort((a, b) => b.maxScore - a.maxScore);
   return answer;
 }

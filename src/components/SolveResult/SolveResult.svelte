@@ -66,7 +66,7 @@
     flex-direction: column;
     align-items: center;
     gap: 2rem;
-    max-width: 20rem;
+    max-width: min(20rem, 100%);
   }
   .right {
     display: flex;

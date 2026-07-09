@@ -18,6 +18,12 @@
     en_us: 'Simulator',
     zh_cn: '模拟器',
   };
+
+  const LToggleLocale: LocalizationName = {
+    ko_kr: '언어 변경',
+    en_us: 'Change language',
+    zh_cn: '切换语言',
+  };
 </script>
 
 <div class="app-toolbar">
@@ -30,7 +36,11 @@
     <button hidden={!appConfig.current.uiConfig.debugMode} onclick={() => toggleUI('debugMode')}
       >开发者模式 {appConfig.current.uiConfig.debugMode ? '关闭' : '开启'}</button
     >
-    <button onclick={toggleDarkMode}>
+    <button
+      onclick={toggleDarkMode}
+      aria-pressed={appConfig.current.uiConfig.darkMode}
+      aria-label={LDarkMode[locale]}
+    >
       {LDarkMode[locale]}
       <i
         class="fa-solid"
@@ -38,7 +48,9 @@
         class:fa-toggle-off={!appConfig.current.uiConfig.darkMode}
       ></i>
     </button>
-    <button onclick={toggleLocale}>Locale {locale}</button>
+    <button onclick={toggleLocale} aria-label={`${LToggleLocale[locale]}: ${locale}`}
+      >Locale {locale}</button
+    >
   </div>
 </div>
 

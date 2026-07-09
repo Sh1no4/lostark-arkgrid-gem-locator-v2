@@ -1,7 +1,6 @@
 <script lang="ts">
   import { type ArkGridAttr, ArkGridAttrs } from '../../lib/constants/enums';
   import { LChaos, LOrder } from '../../lib/constants/localization';
-  import { gemSetPackPreviewKey } from '../../lib/solver/utils';
   import { appLocale } from '../../lib/state/locale.state.svelte';
   import type {
     AdditionalGemResult,
@@ -17,8 +16,8 @@
   const { additionalGemResult, solveAnswer, needLauncherGem }: Props = $props();
 
   let currentKey = $derived<Record<ArkGridAttr, [number, number, number]>>({
-    질서: gemSetPackPreviewKey(solveAnswer.gemSetPackTuple.gsp1),
-    혼돈: gemSetPackPreviewKey(solveAnswer.gemSetPackTuple.gsp2),
+    질서: solveAnswer.gemSetPackTuple.gsp1?.corePointTuple ?? [0, 0, 0],
+    혼돈: solveAnswer.gemSetPackTuple.gsp2?.corePointTuple ?? [0, 0, 0],
   });
   const sortedAdditionalGemResult = $derived({
     질서: Object.values(additionalGemResult['질서']).sort((a, b) => b.score - a.score),
@@ -73,6 +72,7 @@
       zh_cn: '这会预览追加宝石后可达的核心点数组合。',
     }[locale]
   );
+  const titleTooltipId = 'additional-gem-preview-tooltip';
   const LCurrentPoints = $derived(
     {
       ko_kr: '현재 코어 포인트',
@@ -100,8 +100,15 @@
   <div class="title">
     {LTitle}
     <span class="tooltip">
-      <i class="fa-solid fa-circle-info info-icon"></i>
-      <span class="tooltip-text">{LTitleDesc}</span>
+      <button
+        type="button"
+        class="tooltip-trigger"
+        aria-label={LTitle}
+        aria-describedby={titleTooltipId}
+      >
+        <i class="fa-solid fa-circle-info info-icon" aria-hidden="true"></i>
+      </button>
+      <span id={titleTooltipId} class="tooltip-text">{LTitleDesc}</span>
     </span>
   </div>
   {#each ArkGridAttrs as attr}

@@ -2,12 +2,8 @@ import { persistedState } from 'svelte-persisted-state';
 
 import { type ArkGridAttr, ArkGridAttrs, DEFAULT_PROFILE_NAME } from '../constants/enums';
 import { type ArkGridCore, type ArkGridCoreType, ArkGridCoreTypes } from '../models/arkGridCores';
-import { apiClient } from '../openapi';
 import { type CharacterProfile, initNewProfile, migrateProfile } from './profile.state.svelte';
 
-export interface OpenApiConfig {
-  jwt?: string;
-}
 interface UIConfig {
   showGemRecognitionPanel: boolean;
   showGemRecognitionGuide: boolean;
@@ -29,8 +25,66 @@ const defaultUIConfig: UIConfig = {
 
 interface AppConfig {
   characterProfiles: CharacterProfile[];
-  openApiConfig: OpenApiConfig;
   uiConfig: UIConfig;
+}
+
+function isObjectRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function readBooleanOrDefault(value: unknown, fallback: boolean) {
+  return typeof value === 'boolean' ? value : fallback;
+}
+
+function createDefaultAppConfig(): AppConfig {
+  return {
+    characterProfiles: [initNewProfile(DEFAULT_PROFILE_NAME)],
+    uiConfig: { ...defaultUIConfig },
+  };
+}
+
+function sanitizeUIConfig(value: unknown): UIConfig {
+  const existingUIConfig = isObjectRecord(value) ? value : {};
+
+  return {
+    showGemRecognitionPanel: readBooleanOrDefault(
+      existingUIConfig.showGemRecognitionPanel,
+      defaultUIConfig.showGemRecognitionPanel
+    ),
+    showGemRecognitionGuide: readBooleanOrDefault(
+      existingUIConfig.showGemRecognitionGuide,
+      defaultUIConfig.showGemRecognitionGuide
+    ),
+    showCoreCoeff: readBooleanOrDefault(
+      existingUIConfig.showCoreCoeff,
+      defaultUIConfig.showCoreCoeff
+    ),
+    debugMode: readBooleanOrDefault(existingUIConfig.debugMode, defaultUIConfig.debugMode),
+    darkMode: readBooleanOrDefault(existingUIConfig.darkMode, defaultUIConfig.darkMode),
+    deferredScreenSharingInit: readBooleanOrDefault(
+      existingUIConfig.deferredScreenSharingInit,
+      defaultUIConfig.deferredScreenSharingInit
+    ),
+    newGemAddStyle: readBooleanOrDefault(
+      existingUIConfig.newGemAddStyle,
+      defaultUIConfig.newGemAddStyle
+    ),
+  };
+}
+
+function sanitizeCharacterProfiles(value: unknown): CharacterProfile[] {
+  if (!Array.isArray(value)) {
+    return [initNewProfile(DEFAULT_PROFILE_NAME)];
+  }
+
+  const migratedProfiles = value
+    .filter(isObjectRecord)
+    .map((profile) => {
+      migrateProfile(profile);
+      return profile as CharacterProfile;
+    });
+
+  return migratedProfiles.length > 0 ? migratedProfiles : [initNewProfile(DEFAULT_PROFILE_NAME)];
 }
 
 // serializer object for svelte-persisted-state
@@ -50,41 +104,34 @@ export const bigIntSerializer = {
     });
   },
 };
-export function migrateAppConfig(appConfig: Partial<AppConfig>) {
-  // uiConfig.darkMode 추가
-  if (appConfig.uiConfig && appConfig.uiConfig.darkMode === undefined) {
-    appConfig.uiConfig.darkMode = false;
+export function migrateAppConfig(value: unknown): AppConfig {
+  if (!isObjectRecord(value)) {
+    return createDefaultAppConfig();
   }
+
+  const appConfig = value as Partial<AppConfig> & Record<string, unknown>;
+  appConfig.uiConfig = sanitizeUIConfig(appConfig.uiConfig);
+  appConfig.characterProfiles = sanitizeCharacterProfiles(appConfig.characterProfiles);
+
   // appLocale 제거
   if ('appLocale' in appConfig) {
     delete appConfig.appLocale;
   }
-  // deferredScreenSharingInit
-  if (appConfig.uiConfig && appConfig.uiConfig.deferredScreenSharingInit === undefined) {
-    appConfig.uiConfig.deferredScreenSharingInit = false;
+  // Korean OpenAPI import support was removed in this fork.
+  if ('openApiConfig' in appConfig) {
+    delete appConfig.openApiConfig;
   }
-  // newGemAddStyle
-  if (appConfig.uiConfig && appConfig.uiConfig.newGemAddStyle === undefined) {
-    appConfig.uiConfig.newGemAddStyle = false;
-  }
+
+  return appConfig as AppConfig;
 }
 
 export const appConfig = persistedState<AppConfig>(
   'appConfig',
-  {
-    characterProfiles: [initNewProfile(DEFAULT_PROFILE_NAME)],
-    openApiConfig: {},
-    uiConfig: defaultUIConfig,
-  },
+  createDefaultAppConfig(),
   {
     serializer: bigIntSerializer,
     beforeRead: (value) => {
-      migrateAppConfig(value);
-      // localStore에 있는 건 app이 기대하는 형태가 아닐 수 있음
-      for (const profile of value.characterProfiles) {
-        migrateProfile(profile);
-      }
-      return value;
+      return migrateAppConfig(value);
     },
   }
 );
@@ -125,16 +172,6 @@ export function toggleUI(optionName: keyof UIConfig) {
 }
 export function updateUI(optionName: keyof UIConfig, value: boolean) {
   appConfig.current.uiConfig[optionName] = value;
-}
-
-export function updateOpenApiJWT(jwtInput: string) {
-  if (jwtInput.length > 0) {
-    const jwtTrimed = jwtInput.trim();
-    appConfig.current.openApiConfig.jwt = jwtTrimed;
-    apiClient.setSecurityData({
-      jwt: jwtTrimed,
-    });
-  }
 }
 
 export function toggleDarkMode() {

@@ -95,7 +95,6 @@ export class GemSet {
       scoreMaps[2][this.boss][0];
 
     if (this.maxScore < this.minScore) {
-      console.log(this);
       throw Error(`${this.maxScore}이 ${this.minScore}보다 작습니다.`);
     }
   }

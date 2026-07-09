@@ -67,6 +67,10 @@
       zh_cn: '这是当前战斗力提升除以最大战斗力提升得到的评分值。',
     }[locale]
   );
+  const currentScoreTooltipId = 'score-current-tooltip';
+  const maximumScoreTooltipId = 'score-maximum-tooltip';
+  const totalScoreTooltipId = 'score-total-tooltip';
+
   function formatPercentScore(score: number) {
     const formattedScore = `${score.toFixed(2)}%`;
     return score > 0 ? `+${formattedScore}` : formattedScore;
@@ -94,8 +98,15 @@
       </div>
       <div>{LCurrent}</div>
       <span class="tooltip">
-        <i class="fa-solid fa-circle-info info-icon"></i>
-        <span class="tooltip-text">
+        <button
+          type="button"
+          class="tooltip-trigger"
+          aria-label={LCurrent}
+          aria-describedby={currentScoreTooltipId}
+        >
+          <i class="fa-solid fa-circle-info info-icon" aria-hidden="true"></i>
+        </button>
+        <span id={currentScoreTooltipId} class="tooltip-text">
           {LCurrentDesc}
         </span>
       </span>
@@ -107,8 +118,15 @@
       </div>
       <div>{LMaximum}</div>
       <span class="tooltip">
-        <i class="fa-solid fa-circle-info info-icon"></i>
-        <span class="tooltip-text">
+        <button
+          type="button"
+          class="tooltip-trigger"
+          aria-label={LMaximum}
+          aria-describedby={maximumScoreTooltipId}
+        >
+          <i class="fa-solid fa-circle-info info-icon" aria-hidden="true"></i>
+        </button>
+        <span id={maximumScoreTooltipId} class="tooltip-text">
           {LMaxDesc}
         </span>
       </span>
@@ -118,8 +136,15 @@
   <div>
     <span class="total-score">{LTotalScore} {(totalScore * 100).toFixed(2)}</span>
     <span class="tooltip">
-      <i class="fa-solid fa-circle-info info-icon"></i>
-      <span class="tooltip-text">
+      <button
+        type="button"
+        class="tooltip-trigger"
+        aria-label={LTotalScore}
+        aria-describedby={totalScoreTooltipId}
+      >
+        <i class="fa-solid fa-circle-info info-icon" aria-hidden="true"></i>
+      </button>
+      <span id={totalScoreTooltipId} class="tooltip-text">
         {LTotalScoreDesc}
       </span>
     </span>
@@ -138,7 +163,7 @@
   }
 
   .score-wrapper {
-    width: 20rem;
+    width: min(20rem, 100%);
   }
   .total-score {
     font-size: 1.1rem;
@@ -195,6 +220,13 @@
 
   .score-bar > .moving {
     animation: move-left 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .score-bar > .moving {
+      animation: none;
+      left: var(--target-left);
+    }
   }
 
   @keyframes move-left {

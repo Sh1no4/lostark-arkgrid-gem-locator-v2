@@ -25,22 +25,26 @@ export function getBestMatchAtlas<K extends string>(
   }
   const { atlas, entries } = matchingAtlas;
   const result = new cv.Mat();
-  cv.matchTemplate(frame, atlas, result, cv.TM_CCOEFF_NORMED);
-  const mm = cv.minMaxLoc(result);
-  for (const key of Object.keys(entries) as K[]) {
-    const e = entries[key];
-    if (mm.maxLoc.x > e.x && mm.maxLoc.x < e.x + e.width) {
-      if (roi) targetFrame.delete();
-      return {
-        key,
-        score: mm.maxVal,
-        loc: mm.maxLoc,
-        template: e.template,
-      };
+  try {
+    cv.matchTemplate(frame, atlas, result, cv.TM_CCOEFF_NORMED);
+    const mm = cv.minMaxLoc(result);
+    for (const key of Object.keys(entries) as K[]) {
+      const e = entries[key];
+      if (mm.maxLoc.x > e.x && mm.maxLoc.x < e.x + e.width) {
+        return {
+          key,
+          score: mm.maxVal,
+          loc: mm.maxLoc,
+          template: e.template,
+        };
+      }
     }
+
+    throw Error('never reached');
+  } finally {
+    result.delete();
+    if (roi) targetFrame.delete();
   }
-  if (roi) targetFrame.delete();
-  throw Error('never reached');
 }
 
 export function getBestMatch<K extends string>(
@@ -114,17 +118,21 @@ export function findLocation(frame: CvMat, template: CvMat, roi?: CvRect) {
   const targetFrame = roi ? frame.roi(roi) : frame;
 
   const result = new cv.Mat();
-  cv.matchTemplate(targetFrame, template, result, cv.TM_CCOEFF_NORMED);
-  const mm = cv.minMaxLoc(result);
-  if (roi) targetFrame.delete();
+  try {
+    cv.matchTemplate(targetFrame, template, result, cv.TM_CCOEFF_NORMED);
+    const mm = cv.minMaxLoc(result);
 
-  return {
-    key: '',
-    score: mm.maxVal,
-    loc: new cv.Point(
-      roi ? roi.x + mm.maxLoc.x : mm.maxLoc.x,
-      roi ? roi.y + mm.maxLoc.y : mm.maxLoc.y
-    ),
-    template: template,
-  };
+    return {
+      key: '',
+      score: mm.maxVal,
+      loc: new cv.Point(
+        roi ? roi.x + mm.maxLoc.x : mm.maxLoc.x,
+        roi ? roi.y + mm.maxLoc.y : mm.maxLoc.y
+      ),
+      template: template,
+    };
+  } finally {
+    result.delete();
+    if (roi) targetFrame.delete();
+  }
 }
