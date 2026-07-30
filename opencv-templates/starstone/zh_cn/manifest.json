@@ -1,0 +1,76 @@
+{
+  "locale": "zh_cn",
+  "static": [
+    {
+      "id": "anchor.processing_title",
+      "file": "static/anchor/processing-title.png"
+    }
+  ],
+  "digits": [
+    {
+      "idPrefix": "digit.candidate.red",
+      "source": "card_digit_red",
+      "expectedDigits": [1, 2, 3, 4]
+    },
+    {
+      "idPrefix": "digit.candidate.yellow",
+      "source": "card_digit_yellow",
+      "expectedDigits": [1, 2, 3, 4]
+    },
+    {
+      "idPrefix": "digit.candidate.green",
+      "source": "card_digit_green",
+      "expectedDigits": [1, 2, 3, 4]
+    },
+    {
+      "idPrefix": "digit.candidate.blue",
+      "source": "card_digit_blue",
+      "expectedDigits": [1, 2, 3, 4]
+    },
+    {
+      "idPrefix": "digit.candidate.refresh",
+      "source": "card_refresh_digit",
+      "expectedDigits": [1, 2]
+    },
+    {
+      "idPrefix": "digit.refresh_count",
+      "source": "refreshCnt",
+      "expectedDigits": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    },
+    {
+      "idPrefix": "digit.remaining_attempts",
+      "source": "remainingAttempts",
+      "expectedDigits": [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    },
+    {
+      "idPrefix": "digit.max_attempts",
+      "source": "maxAttempts",
+      "expectedDigits": [5, 7, 9]
+    },
+    {
+      "idPrefix": "digit.cost",
+      "source": "costVal",
+      "expectedDigits": [8, 9]
+    },
+    {
+      "idPrefix": "digit.diamond_top",
+      "source": "diamondTopLv",
+      "expectedDigits": [1, 2, 3, 4, 5]
+    },
+    {
+      "idPrefix": "digit.diamond_bottom",
+      "source": "diamondBotLv",
+      "expectedDigits": [1, 2, 3, 4, 5]
+    },
+    {
+      "idPrefix": "digit.diamond_left",
+      "source": "diamondLeftLv",
+      "expectedDigits": [1, 2, 3, 4, 5]
+    },
+    {
+      "idPrefix": "digit.diamond_right",
+      "source": "diamondRightLv",
+      "expectedDigits": [1, 2, 3, 4, 5]
+    }
+  ]
+}
