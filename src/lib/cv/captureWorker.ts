@@ -6,10 +6,14 @@ import type { MatchingAtlas } from './atlas';
 import { getCv, initOpenCv } from './cvRuntime';
 import { showMatch } from './debug';
 import {
-  type KeyOptionLevel,
-  type KeyOptionString,
+  type KeyAnchorAll,
+  type KeyCorePointAll,
+  type KeyGemAttrAll,
+  type KeyOptionLevelAll,
+  type KeyOptionStringAll,
   loadGemAsset,
   normalizeWillPowerKey,
+  stripVariant,
 } from './matStore';
 import { type MatchingResult, getBestMatch } from './matcher';
 import type { CaptureWorkerRequest, CaptureWorkerResponse, CvMat } from './types';
@@ -130,7 +134,7 @@ class FrameProcessor {
   private getOptionLevelXOffset(
     layout: RecognitionLayout,
     optionNameRoi: RecognitionRect,
-    optionName: MatchingResult<KeyOptionString> | null
+    optionName: MatchingResult<KeyOptionStringAll> | null
   ) {
     if (!optionName) return layout.optionLevel.fallbackX;
 
@@ -296,16 +300,17 @@ class FrameProcessor {
       }
 
       const currentAnchorAtlas = this.loadedAsset.atlasAnchorByLocale[recognitionLocale];
-      const currentAnchorEntry = currentAnchorAtlas.entries[recognitionLocale];
+      const anchorRoiWidth = Math.max(...Object.values(currentAnchorAtlas.entries).map((e) => e.width));
+      const anchorRoiHeight = Math.max(...Object.values(currentAnchorAtlas.entries).map((e) => e.height));
       const roiAnchor = this.previousInfo
         ? {
             x: this.previousInfo.anchorLoc.x,
             y: this.previousInfo.anchorLoc.y,
-            width: currentAnchorEntry.width,
-            height: currentAnchorEntry.height,
+            width: anchorRoiWidth,
+            height: anchorRoiHeight,
           }
         : { x: canvas.width / 2, y: 0, width: canvas.width / 2, height: canvas.height / 2 };
-      const anchor = this.findBest(
+      const anchor = this.findBest<KeyAnchorAll>(
         {
           roi: roiAnchor,
           atlas: currentAnchorAtlas,
@@ -333,7 +338,7 @@ class FrameProcessor {
       const layout = this.getRecognitionLayout(currentLocale);
 
       //2 질서 혹은 혼돈 문구 탐색
-      const gemAttr = this.findBest(
+      const gemAttr = this.findBest<KeyGemAttrAll>(
         {
           roi: {
             x: anchorX + layout.gemAttr.x,
@@ -405,8 +410,8 @@ class FrameProcessor {
 
         // 4) 젬 옵션 추출
         type GemOptionResult = {
-          optionName: MatchingResult<KeyOptionString> | null;
-          optionLevel: MatchingResult<KeyOptionLevel> | null;
+          optionName: MatchingResult<KeyOptionStringAll> | null;
+          optionLevel: MatchingResult<KeyOptionLevelAll> | null;
           yOffset: number;
         };
         const optionTop: GemOptionResult = {
@@ -497,24 +502,24 @@ class FrameProcessor {
           optionBottom.optionLevel !== null
         ) {
           const gem: ArkGridGem = {
-            gemAttr: gemAttr.key,
+            gemAttr: stripVariant(gemAttr.key),
             name: gemName.key,
             req: Number(normalizeWillPowerKey(willPower.key)),
-            point: Number(corePoint.key),
+            point: Number(stripVariant(corePoint.key)),
             option1: {
-              optionType: optionTop.optionName.key,
-              value: Number(optionTop.optionLevel.key),
+              optionType: stripVariant(optionTop.optionName.key),
+              value: Number(stripVariant(optionTop.optionLevel.key)),
             },
             option2: {
-              optionType: optionBottom.optionName.key,
-              value: Number(optionBottom.optionLevel.key),
+              optionType: stripVariant(optionBottom.optionName.key),
+              value: Number(stripVariant(optionBottom.optionLevel.key)),
             },
           };
           gem.grade = determineGemGradeByGem(gem);
           currentGems.push(gem);
         }
       }
-      return { locale: currentLocale, gemAttr: gemAttr.key, gems: currentGems };
+      return { locale: currentLocale, gemAttr: stripVariant(gemAttr.key), gems: currentGems };
       // ... 그 외 인식
       // return 인식된 객체들
     } finally {

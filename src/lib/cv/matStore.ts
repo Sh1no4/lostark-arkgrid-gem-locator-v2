@@ -17,13 +17,21 @@ import { getCv } from './cvRuntime';
 import type { CvMat } from './types';
 
 export type KeyBaseWillPower = '3' | '4' | '5' | '6' | '7' | '8' | '9';
-export type KeyAlternateWillPower = '3_1' | '4_1' | '5_1' | '6_1' | '7_1' | '8_1';
+export type KeyAlternateWillPower = '3_1' | '4_1' | '5_1' | '6_1' | '7_1' | '8_1' | '9_1';
 export type KeyWillPower = KeyBaseWillPower | KeyAlternateWillPower;
 export type KeyCorePoint = '1' | '2' | '3' | '4' | '5';
 export type KeyOptionString = ArkGridGemOptionName;
 export type KeyOptionLevel = '1' | '2' | '3' | '4' | '5';
 export type KeyGemAttr = ArkGridAttr;
 export type KeyGemName = ArkGridGemName;
+
+// ru_cn 新旧两套字体。带 `_1` 的是“新分支字体”模板，
+// 识别结果键需经 stripVariant 剥掉后缀后再使用。
+export type KeyAnchorAll = 'anchor' | 'anchor_1';
+export type KeyGemAttrAll = KeyGemAttr | `${KeyGemAttr}_1`;
+export type KeyCorePointAll = KeyCorePoint | `${KeyCorePoint}_1`;
+export type KeyOptionLevelAll = KeyOptionLevel | `${KeyOptionLevel}_1`;
+export type KeyOptionStringAll = KeyOptionString | `${KeyOptionString}_1`;
 
 type TemplateCoordMap = Record<string, { x: number; y: number; w: number; h: number }>;
 
@@ -75,11 +83,32 @@ async function loadGemTemplates(): Promise<GemTemplates> {
   };
 }
 
-function generateSingleMatchingAtlas<K extends string>(key: K, mat: CvMat): MatchingAtlas<K> {
-  return generateMatchingAtlas({ [key]: mat } as Record<K, CvMat>);
+/**
+ * ru_cn 双字体并集工具。
+ * `_1` 结尾=新分支字体。识别时新旧字体模板同时进图集、取最佳匹配；
+ * 命中键带 `_1` 时，先用 stripVariant 归一化再写入结果。
+ */
+export function stripVariant<K extends string>(key: K): K extends `${infer Base}_1` ? Base : K {
+  return key.replace(/_1$/, '') as K extends `${infer Base}_1` ? Base : K;
 }
 
-const baseWillPowerTemplateNames = ['3', '4', '5', '6', '7', '8', '9'] as const;
+type AlternateDef<K extends string> = { key: K; fileName: string };
+
+function buildAltUnion<const K extends string, const A extends string>(
+  locale: GemRecognitionLocale,
+  mats: Partial<Record<string, CvMat>>,
+  base: Record<K, CvMat>,
+  alternates: readonly AlternateDef<A>[]
+): Record<K | A, CvMat> {
+  const union = { ...base } as Record<K | A, CvMat>;
+  if (locale === 'ru_cn') {
+    for (const alt of alternates) {
+      const mat = mats[alt.fileName];
+      if (mat) union[alt.key] = mat;
+    }
+  }
+  return union;
+}
 
 const alternateRuCnWillPowerTemplates = [
   { key: '3_1', fileName: '3_1.png' },
@@ -88,52 +117,64 @@ const alternateRuCnWillPowerTemplates = [
   { key: '6_1', fileName: '6_1.png' },
   { key: '7_1', fileName: '7_1.png' },
   { key: '8_1', fileName: '8_1.png' },
-] as const satisfies readonly { key: KeyAlternateWillPower; fileName: string }[];
+  { key: '9_1', fileName: '9_1.png' },
+] as const satisfies readonly AlternateDef<KeyAlternateWillPower>[];
+
+const baseWillPowerTemplateNames = ['3', '4', '5', '6', '7', '8', '9'] as const;
 
 function buildWillPowerTemplates(
   locale: GemRecognitionLocale,
   mats: Partial<Record<string, CvMat>>
 ): Record<KeyWillPower, CvMat> {
-  const willPowerTemplates = {} as Record<KeyWillPower, CvMat>;
-
+  const base = {} as Record<KeyBaseWillPower, CvMat>;
   for (const templateName of baseWillPowerTemplateNames) {
-    willPowerTemplates[templateName] = mats[`${templateName}.png`];
+    const mat = mats[`${templateName}.png`];
+    if (mat) base[templateName] = mat;
   }
-
-  if (locale === 'ru_cn') {
-    for (const alternateTemplate of alternateRuCnWillPowerTemplates) {
-      const alternateTemplateMat = mats[alternateTemplate.fileName];
-      if (alternateTemplateMat) {
-        willPowerTemplates[alternateTemplate.key] = alternateTemplateMat;
-      }
-    }
-  }
-
-  return willPowerTemplates;
+  return buildAltUnion<KeyBaseWillPower, KeyAlternateWillPower>(
+    locale,
+    mats,
+    base,
+    alternateRuCnWillPowerTemplates
+  );
 }
 
-function buildTopWillPowerTemplates(
-  locale: GemRecognitionLocale,
-  mats: Partial<Record<string, CvMat>>
-): Record<KeyWillPower, CvMat> {
-  if (locale !== 'ru_cn') {
-    return buildWillPowerTemplates(locale, mats);
-  }
+const ruCnAlternateAnchor = [
+  { key: 'anchor_1', fileName: 'anchor_1.png' },
+] as const satisfies readonly AlternateDef<'anchor_1'>[];
 
-  const topWillPowerTemplates = {} as Record<KeyWillPower, CvMat>;
+const ruCnAlternateGemAttr = [
+  { key: '질서_1', fileName: '질서_1.png' },
+  { key: '혼돈_1', fileName: '혼돈_1.png' },
+] as const satisfies readonly AlternateDef<`${ArkGridAttr}_1`>[];
 
-  for (const alternateTemplate of alternateRuCnWillPowerTemplates) {
-    const alternateTemplateMat = mats[alternateTemplate.fileName];
-    if (alternateTemplateMat) {
-      topWillPowerTemplates[alternateTemplate.key] = alternateTemplateMat;
-    }
-  }
+const ruCnAlternateCorePoint = [
+  { key: '1_1', fileName: '1_1.png' },
+  { key: '2_1', fileName: '2_1.png' },
+  { key: '3_1', fileName: '3_1.png' },
+  { key: '4_1', fileName: '4_1.png' },
+  { key: '5_1', fileName: '5_1.png' },
+] as const satisfies readonly AlternateDef<KeyCorePointAll>[];
 
-  return topWillPowerTemplates;
-}
+const ruCnAlternateOptionLevel = [
+  { key: '1_1', fileName: 'lv1_1.png' },
+  { key: '2_1', fileName: 'lv2_1.png' },
+  { key: '3_1', fileName: 'lv3_1.png' },
+  { key: '4_1', fileName: 'lv4_1.png' },
+  { key: '5_1', fileName: 'lv5_1.png' },
+] as const satisfies readonly AlternateDef<KeyOptionLevelAll>[];
+
+const ruCnAlternateOptionName = [
+  { key: '공격력_1', fileName: '공격력_1.png' },
+  { key: '추가 피해_1', fileName: '추가피해_1.png' },
+  { key: '보스 피해_1', fileName: '보스피해_1.png' },
+  { key: '낙인력_1', fileName: '낙인력_1.png' },
+  { key: '아군 공격 강화_1', fileName: '아군공격강화_1.png' },
+  { key: '아군 피해 강화_1', fileName: '아군피해강화_1.png' },
+] as const satisfies readonly AlternateDef<KeyOptionStringAll>[];
 
 export function normalizeWillPowerKey(key: KeyWillPower): KeyBaseWillPower {
-  return key.replace('_1', '') as KeyBaseWillPower;
+  return stripVariant(key) as KeyBaseWillPower;
 }
 
 export async function loadGemAsset() {
@@ -141,22 +182,29 @@ export async function loadGemAsset() {
 
   const atlasAnchorByLocale = supportedGemRecognitionLocales.reduce(
     (acc, locale) => {
-      acc[locale] = generateSingleMatchingAtlas(locale, gt[locale]['anchor.png']);
+      const mats = gt[locale];
+      acc[locale] = generateMatchingAtlas(
+        buildAltUnion(locale, mats, { anchor: mats['anchor.png'] }, ruCnAlternateAnchor)
+      );
       return acc;
     },
-    {} as Record<GemRecognitionLocale, MatchingAtlas<GemRecognitionLocale>>
+    {} as Record<GemRecognitionLocale, MatchingAtlas<KeyAnchorAll>>
   );
 
   const atlasGemAttr = supportedGemRecognitionLocales.reduce(
     (acc, locale) => {
       const mats = gt[locale];
-      acc[locale] = generateMatchingAtlas({
-        질서: mats['질서.png'],
-        혼돈: mats['혼돈.png'],
-      });
+      acc[locale] = generateMatchingAtlas(
+        buildAltUnion(
+          locale,
+          mats,
+          { 질서: mats['질서.png'], 혼돈: mats['혼돈.png'] },
+          ruCnAlternateGemAttr
+        )
+      );
       return acc;
     },
-    {} as Record<GemRecognitionLocale, MatchingAtlas<ArkGridAttr>>
+    {} as Record<GemRecognitionLocale, MatchingAtlas<KeyGemAttrAll>>
   );
 
   const atlasWillPower = supportedGemRecognitionLocales.reduce(
@@ -171,7 +219,7 @@ export async function loadGemAsset() {
   const atlasTopWillPower = supportedGemRecognitionLocales.reduce(
     (acc, locale) => {
       const mats = gt[locale];
-      acc[locale] = generateMatchingAtlas(buildTopWillPowerTemplates(locale, mats));
+      acc[locale] = generateMatchingAtlas(buildWillPowerTemplates(locale, mats));
       return acc;
     },
     {} as Record<GemRecognitionLocale, MatchingAtlas<KeyWillPower>>
@@ -180,16 +228,23 @@ export async function loadGemAsset() {
   const atlasCorePoint = supportedGemRecognitionLocales.reduce(
     (acc, locale) => {
       const mats = gt[locale];
-      acc[locale] = generateMatchingAtlas({
-        1: mats['1.png'],
-        2: mats['2.png'],
-        3: mats['3.png'],
-        4: mats['4.png'],
-        5: mats['5.png'],
-      });
+      acc[locale] = generateMatchingAtlas(
+        buildAltUnion(
+          locale,
+          mats,
+          {
+            1: mats['1.png'],
+            2: mats['2.png'],
+            3: mats['3.png'],
+            4: mats['4.png'],
+            5: mats['5.png'],
+          },
+          ruCnAlternateCorePoint
+        )
+      );
       return acc;
     },
-    {} as Record<GemRecognitionLocale, MatchingAtlas<KeyCorePoint>>
+    {} as Record<GemRecognitionLocale, MatchingAtlas<KeyCorePointAll>>
   );
 
   const altasGemImage = supportedGemRecognitionLocales.reduce(
@@ -211,32 +266,46 @@ export async function loadGemAsset() {
   const atlasOptionName = supportedGemRecognitionLocales.reduce(
     (acc, locale) => {
       const mats = gt[locale];
-      acc[locale] = generateMatchingAtlas({
-        공격력: mats['공격력.png'],
-        '추가 피해': mats['추가피해.png'],
-        '보스 피해': mats['보스피해.png'],
-        낙인력: mats['낙인력.png'],
-        '아군 공격 강화': mats['아군공격강화.png'],
-        '아군 피해 강화': mats['아군피해강화.png'],
-      });
+      acc[locale] = generateMatchingAtlas(
+        buildAltUnion(
+          locale,
+          mats,
+          {
+            공격력: mats['공격력.png'],
+            '추가 피해': mats['추가피해.png'],
+            '보스 피해': mats['보스피해.png'],
+            낙인력: mats['낙인력.png'],
+            '아군 공격 강화': mats['아군공격강화.png'],
+            '아군 피해 강화': mats['아군피해강화.png'],
+          },
+          ruCnAlternateOptionName
+        )
+      );
       return acc;
     },
-    {} as Record<GemRecognitionLocale, MatchingAtlas<KeyOptionString>>
+    {} as Record<GemRecognitionLocale, MatchingAtlas<KeyOptionStringAll>>
   );
 
   const atlasOptionLevel = supportedGemRecognitionLocales.reduce(
     (acc, locale) => {
       const mats = gt[locale];
-      acc[locale] = generateMatchingAtlas({
-        1: mats['lv1.png'],
-        2: mats['lv2.png'],
-        3: mats['lv3.png'],
-        4: mats['lv4.png'],
-        5: mats['lv5.png'],
-      });
+      acc[locale] = generateMatchingAtlas(
+        buildAltUnion(
+          locale,
+          mats,
+          {
+            1: mats['lv1.png'],
+            2: mats['lv2.png'],
+            3: mats['lv3.png'],
+            4: mats['lv4.png'],
+            5: mats['lv5.png'],
+          },
+          ruCnAlternateOptionLevel
+        )
+      );
       return acc;
     },
-    {} as Record<GemRecognitionLocale, MatchingAtlas<KeyOptionLevel>>
+    {} as Record<GemRecognitionLocale, MatchingAtlas<KeyOptionLevelAll>>
   );
 
   return {

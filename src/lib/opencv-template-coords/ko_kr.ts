@@ -33,4 +33,4 @@ export const koKrCoords = {
 
 export type KoKrTemplateName = keyof typeof koKrCoords;
 
-export const koKrFileName = 'opencv_template_ko_kr_1783434728655.png';
+export const koKrFileName = 'opencv_template_ko_kr_1787837036852.png';
