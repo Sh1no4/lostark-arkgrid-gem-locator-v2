@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { toast } from '@zerodevx/svelte-toast';
   import { onDestroy } from 'svelte';
 
   import {
@@ -8,6 +9,7 @@
     type LocalizationName,
     supportedGemRecognitionLocales,
   } from '../../lib/constants/enums';
+  import { LChaos, LOrder } from '../../lib/constants/localization';
   import { CaptureController } from '../../lib/cv/captureController';
   import { type ArkGridGem, isSameArkGridGem } from '../../lib/models/arkGridGems';
   import {
@@ -24,9 +26,9 @@
   let locale = $derived(appLocale.current);
   let recognitionLocale = $derived(gemRecognitionLocale.current);
   const LTitle: LocalizationName = {
-    ko_kr: '젬 화면 인식',
-    en_us: 'Astrogem Recognition Screen',
-    zh_cn: '护石界面识别',
+    ko_kr: '1. 젬 화면 인식',
+    en_us: '1. Astrogem Recognition',
+    zh_cn: '1. 护石识别',
   };
   const LStartCapture: LocalizationName = {
     ko_kr: '화면 공유 시작',
@@ -93,16 +95,23 @@
   );
   const LReadyStatus = $derived(
     {
-      ko_kr: '화면 공유 시작 버튼을 누르고 LOST ARK가 실행 중인 화면을 선택해주세요.',
-      en_us: 'Press Start Screen Sharing and choose the screen running LOST ARK.',
-      zh_cn: '点击开始屏幕共享，并选择正在运行 LOST ARK 的画面。',
+      ko_kr: '화면 공유를 시작한 뒤, 인식된 젬이 오른쪽 목록에 바로 반영됩니다.',
+      en_us: 'Start screen sharing. Recognized astrogems are written to the list on the right.',
+      zh_cn: '开始屏幕共享后，识别到的护石会立刻写入右侧列表。',
     }[locale]
   );
   const LRecordingStatus = $derived(
     {
-      ko_kr: '자동 추적 중입니다. 젬 목록을 스크롤하며 인식 결과를 확인해주세요.',
-      en_us: 'Auto tracking is active. Scroll the astrogem list and review the results.',
-      zh_cn: '正在自动追踪。请滚动宝石列表并确认识别结果。',
+      ko_kr: '자동 추적 중입니다. 젬 목록을 스크롤하면 오른쪽 목록이 갱신됩니다.',
+      en_us: 'Auto tracking is active. Scroll the list; the panel on the right updates live.',
+      zh_cn: '正在自动追踪。滚动游戏内列表，右侧宝石列表会同步更新。',
+    }[locale]
+  );
+  const LSyncedToList = $derived(
+    {
+      ko_kr: '인식 결과는 현재 프로필의 젬 목록에 바로 저장됩니다.',
+      en_us: 'Recognition results are saved to the current profile list.',
+      zh_cn: '识别结果已写入当前配置的宝石列表。',
     }[locale]
   );
   const LDiagnostics = $derived(
@@ -110,6 +119,34 @@
       ko_kr: '진단 도구',
       en_us: 'Diagnostics',
       zh_cn: '诊断工具',
+    }[locale]
+  );
+  const LCopyFrame = $derived(
+    {
+      ko_kr: '현재 프레임 복사',
+      en_us: 'Copy current frame',
+      zh_cn: '复制当前帧',
+    }[locale]
+  );
+  const LCopyFrameDone = $derived(
+    {
+      ko_kr: '현재 프레임을 클립보드에 복사했습니다.',
+      en_us: 'Current frame copied to the clipboard.',
+      zh_cn: '当前帧已复制到剪贴板。',
+    }[locale]
+  );
+  const LCopyFrameFailed = $derived(
+    {
+      ko_kr: '프레임을 복사하지 못했습니다.',
+      en_us: 'Could not copy the current frame.',
+      zh_cn: '无法复制当前帧。',
+    }[locale]
+  );
+  const LDebugPreview = $derived(
+    {
+      ko_kr: '공유 화면 미리보기',
+      en_us: 'Shared screen preview',
+      zh_cn: '共享画面预览',
     }[locale]
   );
   const LStartCaptureErrors = $derived(
@@ -408,7 +445,7 @@
   async function startGemCapture() {
     const isFirefox = typeof (window as any).InstallTrigger !== 'undefined';
     if (isFirefox) {
-      window.alert(LFirefoxNotSupported);
+      toast.push(LFirefoxNotSupported);
       return;
     }
     // 젬 캡쳐 시작
@@ -423,7 +460,7 @@
       isLoading = false;
     };
     controller.onStartCaptureError = (err) => {
-      window.alert(LStartCaptureErrors[err] ?? LStartCaptureErrors.unknown);
+      toast.push(LStartCaptureErrors[err] ?? LStartCaptureErrors.unknown);
       isLoading = false;
     };
     controller.onReady = () => {
@@ -457,6 +494,21 @@
     controller.setDebugCanvas(debugCanvas ?? null);
     isDebugging = controller.toggleDrawDebug();
   }
+  async function copyDebugFrame() {
+    const canvas = debugCanvas;
+    if (!canvas) {
+      toast.push(LCopyFrameFailed);
+      return;
+    }
+    try {
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
+      if (!blob) throw new Error('empty-frame');
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+      toast.push(LCopyFrameDone);
+    } catch {
+      toast.push(LCopyFrameFailed);
+    }
+  }
   async function updateControllerDetectionMargin(detectionMargin: number) {
     const controller = await getCaptureController();
     controller.detectionMargin = detectionMargin;
@@ -482,12 +534,13 @@
         <button
           type="button"
           class="tooltip-trigger"
-          aria-label={LTitle[locale]}
-          aria-describedby={supportedClientTooltipId}
+          popovertarget={supportedClientTooltipId}
+          aria-haspopup="dialog"
+          aria-label={LSupportedClient}
         >
           <i class="fa-solid fa-circle-info info-icon" aria-hidden="true"></i>
         </button>
-        <span id={supportedClientTooltipId} class="tooltip-text">{LSupportedClient}</span>
+        <div id={supportedClientTooltipId} class="tooltip-text" popover="auto">{LSupportedClient}</div>
       </span>
     </div>
   </div>
@@ -561,6 +614,19 @@
       <div class="recognition-status" class:recording={isRecording}>
         {isRecording ? LRecordingStatus : LReadyStatus}
       </div>
+      <div class="recognition-counts" aria-live="polite">
+        <div class="recognition-count">
+          <span>{LOrder[locale]}</span>
+          <strong>{totalOrderGems.length}</strong>
+        </div>
+        <div class="recognition-count">
+          <span>{LChaos[locale]}</span>
+          <strong>{totalChaosGems.length}</strong>
+        </div>
+      </div>
+      {#if totalOrderGems.length + totalChaosGems.length > 0}
+        <p class="recognition-sync-hint">{LSyncedToList}</p>
+      {/if}
       <button
         class="diagnostics-toggle"
         aria-expanded={showDiagnostics}
@@ -573,10 +639,10 @@
 
     <div id={diagnosticsPanelId} hidden={!showDiagnostics}>
       <div class="debug-screen">
-        <button class:active={isDebugging} onclick={toggleDrawDebug}>
-          🔨 {isDebugging ? LHideScreen[locale] : LShowScreen[locale]}
+        <button type="button" class:active={isDebugging} onclick={toggleDrawDebug}>
+          {isDebugging ? LHideScreen[locale] : LShowScreen[locale]}
         </button>
-        <button onclick={toggleDeferredScreenSharingInit}>
+        <button type="button" onclick={toggleDeferredScreenSharingInit}>
           {LControllerLazyLoading}
           <i
             class="fa-solid"
@@ -600,10 +666,20 @@
             >{LThreshold[locale]}: {LDetectionMargin[locale][detectionMargin]}</label
           >
         </div>
-        <canvas bind:this={debugCanvas} style="border: 1px black solid;"></canvas>
       </div>
     </div>
   </div>
+</div>
+
+<div class="debug-viewer" hidden={!isDebugging}>
+  <div class="debug-viewer__bar">
+    <strong>{LDebugPreview}</strong>
+    <div class="debug-viewer__actions">
+      <button type="button" onclick={copyDebugFrame}>{LCopyFrame}</button>
+      <button type="button" onclick={toggleDrawDebug}>{LHideScreen[locale]}</button>
+    </div>
+  </div>
+  <canvas bind:this={debugCanvas}></canvas>
 </div>
 
 <style>
@@ -670,9 +746,6 @@
     gap: 0.5rem;
   } */
 
-  .title .tooltip-text {
-    bottom: -200%;
-  }
   .status-dot {
     width: 0.72rem;
     height: 0.72rem;
@@ -946,14 +1019,46 @@
     background: color-mix(in srgb, #22c55e 12%, var(--card));
   }
 
+  .recognition-counts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    width: min(100%, 48rem);
+  }
+
+  .recognition-count {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid var(--reference-border, var(--border));
+    border-radius: 0.6rem;
+    background: var(--reference-muted, var(--card-inner));
+    font-size: 0.82rem;
+    font-weight: 700;
+  }
+
+  .recognition-count strong {
+    font-size: 1.1rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .recognition-sync-hint {
+    margin: 0;
+    width: min(100%, 48rem);
+    color: var(--subtle-text);
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1.4;
+    text-align: center;
+  }
+
   .debug-screen {
     display: flex;
     flex-direction: column;
     gap: 1rem;
     justify-content: center;
-  }
-  .debug-screen > canvas {
-    width: auto;
   }
   .debug-screen > .threshold-controller {
     display: flex;
@@ -973,6 +1078,12 @@
       flex-direction: column;
     }
 
+    .debug-viewer {
+      right: 0.5rem;
+      left: 0.5rem;
+      bottom: 0.5rem;
+      width: auto;
+    }
   }
 
   .recognition-header {
@@ -1037,5 +1148,55 @@
     border: 1px solid var(--reference-border, var(--border));
     border-radius: 0.75rem;
     background: var(--reference-card, var(--card));
+  }
+
+  .debug-viewer {
+    position: fixed;
+    right: 1rem;
+    bottom: 1rem;
+    z-index: 40;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    width: min(52rem, calc(100vw - 2rem));
+    max-height: min(72dvh, 42rem);
+    padding: 0.75rem;
+    border: 1px solid var(--reference-border, var(--border));
+    border-radius: var(--radius-md);
+    background: var(--reference-card, var(--card));
+    box-shadow: var(--shadow-md);
+  }
+
+  .debug-viewer[hidden] {
+    display: none;
+  }
+
+  .debug-viewer__bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  .debug-viewer__bar strong {
+    font-size: 0.9rem;
+    font-weight: 800;
+  }
+
+  .debug-viewer__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .debug-viewer canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: calc(72dvh - 4.5rem);
+    object-fit: contain;
+    background: #1a1612;
+    border-radius: var(--radius-sm);
   }
 </style>

@@ -3,7 +3,7 @@
   import { tick } from 'svelte';
 
   import { type ArkGridAttr } from '../lib/constants/enums';
-  import { LChaos, LOrder } from '../lib/constants/localization';
+  import { LCancel, LChaos, LConfirm, LOrder } from '../lib/constants/localization';
   import { appLocale } from '../lib/state/locale.state.svelte';
   import { type AllGems, clearGems } from '../lib/state/profile.state.svelte';
   import ArkGridGemAddPanel from './ArkGridGemAddPanel/Wrapper.svelte';
@@ -15,10 +15,12 @@
 
   let { gems }: Props = $props();
   let showDeleteButton = $state(false);
+  let pendingReset = $state(false);
 
   $effect(() => {
     gems;
     showDeleteButton = false;
+    pendingReset = false;
   });
 
   // 탭 상태
@@ -56,9 +58,17 @@
   });
   let currentAttr: ArkGridAttr = $derived(activeTab == 0 ? '질서' : '혼돈');
 
-  function clearGemWithConfirm() {
-    if (!window.confirm(LResetConfirm)) return;
+  function requestClearGems() {
+    pendingReset = true;
+  }
+
+  function cancelClearGems() {
+    pendingReset = false;
+  }
+
+  function confirmClearGems() {
     clearGems();
+    pendingReset = false;
     const doneMsg = LResetDone;
     if (doneMsg) toast.push(doneMsg);
   }
@@ -140,16 +150,24 @@
       <ArkGridGemAddPanel gemAttr={currentAttr}></ArkGridGemAddPanel>
     </div>
     <div class="right">
-      <button
-        disabled={gems.orderGems.length == 0 && gems.chaosGems.length == 0}
-        onclick={() => (showDeleteButton = !showDeleteButton)}
-      >
-        {LDeleteGem}
-      </button>
-      <button
-        disabled={gems.orderGems.length == 0 && gems.chaosGems.length == 0}
-        onclick={() => clearGemWithConfirm()}>{LReset}</button
-      >
+      {#if pendingReset}
+        <span class="reset-confirm">{LResetConfirm}</span>
+        <button type="button" onclick={confirmClearGems}>{LConfirm[locale]}</button>
+        <button type="button" onclick={cancelClearGems}>{LCancel[locale]}</button>
+      {:else}
+        <button
+          type="button"
+          disabled={gems.orderGems.length == 0 && gems.chaosGems.length == 0}
+          onclick={() => (showDeleteButton = !showDeleteButton)}
+        >
+          {LDeleteGem}
+        </button>
+        <button
+          type="button"
+          disabled={gems.orderGems.length == 0 && gems.chaosGems.length == 0}
+          onclick={requestClearGems}>{LReset}</button
+        >
+      {/if}
     </div>
   </div>
 </div>
@@ -206,6 +224,19 @@
     justify-content: space-between;
     /* 버튼 모음은 panel 가장 하단 */
     margin-top: auto;
+  }
+  .right {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.4rem;
+  }
+  .reset-confirm {
+    max-width: 16rem;
+    color: var(--subtle-text);
+    font-size: 0.8rem;
+    line-height: 1.3;
   }
   .buttons button {
     /* 너비는 자동이지만 최소 5em */

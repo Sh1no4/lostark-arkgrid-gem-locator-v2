@@ -112,7 +112,7 @@ A: 尝试调整核心最小点数设置，或确保所有护石都已正确识�
 - **求解器**: 带有上界剪枝的自定义回溯算法 (TypeScript)
 - **前端**: Svelte 5 (基于组件的 UI，本地状态持久化)
 - **图像处理**: OpenCV.js (模板匹配，Web Worker)
-- **部署**: GitHub Pages (纯客户端)
+- **部署**: 推送到 `main` 后由 GitHub Actions 构建并发布 GitHub Pages
 
 ---
 
@@ -195,17 +195,6 @@ MIT License
 ## 原项目
 
 原始项目地址：[https://github.com/Airplaner/lostark-arkgrid-gem-locator-v2](https://github.com/Airplaner/lostark-arkgrid-gem-locator-v2)
-
----
-
-
-
-## 联系方式
-
-如有问题或建议，请通过以下方式联系：
-
-- Discord: [链接](https://discord.gg/Zk4K3xt9ub)
-- KakaoTalk: [链接](https://open.kakao.com/o/s5bTYodi)
 
 ---
 

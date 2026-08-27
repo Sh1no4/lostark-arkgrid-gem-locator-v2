@@ -1,5 +1,8 @@
 <script lang="ts">
+  import { toast } from '@zerodevx/svelte-toast';
+
   import { DEFAULT_PROFILE_NAME, L_DEFAULT_PROFILE_NAME } from '../../lib/constants/enums';
+  import { LCancel, LConfirm } from '../../lib/constants/localization';
   import {
     addNewProfile,
     appConfig,
@@ -44,7 +47,7 @@
   const LConfirmDeleteProfile: Record<string, (profileName: string) => string> = {
     ko_kr: (name) => `"${name}" 프로필을 삭제하시겠습니까?`,
     en_us: (name) => `Are you sure you want to delete the "${name}" profile?`,
-    zh_cn: (name) => `确定要删除配置"${name}"吗？`,
+    zh_cn: (name) => `确定要删除配置“${name}”吗？`,
   };
   const LDeleteProfile = $derived(
     {
@@ -72,6 +75,20 @@
       ko_kr: '중복된 프로필 이름이 존재합니다.',
       en_us: 'A profile with this name already exists.',
       zh_cn: '已存在相同名称的配置。',
+    }[locale]
+  );
+  const LNameRequired = $derived(
+    {
+      ko_kr: '프로필 이름을 입력해주세요.',
+      en_us: 'Enter a profile name.',
+      zh_cn: '请输入配置名称。',
+    }[locale]
+  );
+  const LNameTooLong = $derived(
+    {
+      ko_kr: '프로필 이름은 16자 이하여야 합니다.',
+      en_us: 'Profile names must be 16 characters or fewer.',
+      zh_cn: '配置名称不能超过 16 个字符。',
     }[locale]
   );
   const LExportProfile = $derived(
@@ -123,13 +140,128 @@
       zh_cn: '选择配置',
     }[locale]
   );
+
+  type DialogMode = 'add' | 'rename' | 'delete';
+  let profileDialog = $state<HTMLDialogElement>();
+  let dialogMode = $state<DialogMode | null>(null);
+  let nameInput = $state('');
+  let dialogError = $state('');
+  const nameInputId = 'profile-name-input';
+
+  const dialogTitle = $derived(
+    dialogMode === 'add' ? LNewProfile : dialogMode === 'rename' ? LEditProfile : LDeleteProfile
+  );
+  const dialogDescription = $derived(
+    dialogMode === 'add'
+      ? LAddNewProfile
+      : dialogMode === 'rename'
+        ? LEditProfileMsg
+        : LConfirmDeleteProfile[locale](currentProfileName.current)
+  );
+
+  function openProfileDialog(mode: DialogMode) {
+    dialogMode = mode;
+    nameInput = mode === 'rename' ? currentProfileName.current : '';
+    dialogError = '';
+    profileDialog?.showModal();
+  }
+
+  function closeProfileDialog() {
+    profileDialog?.close();
+  }
+
+  function handleDialogClose() {
+    dialogMode = null;
+    nameInput = '';
+    dialogError = '';
+  }
+
+  function submitProfileDialog(event: SubmitEvent) {
+    event.preventDefault();
+    if (dialogMode === 'delete') {
+      deleteProfile(currentProfileName.current);
+      closeProfileDialog();
+      return;
+    }
+
+    const profileName = nameInput.trim();
+    if (profileName.length === 0) {
+      dialogError = LNameRequired;
+      return;
+    }
+    if (profileName.length > 16) {
+      dialogError = LNameTooLong;
+      return;
+    }
+
+    if (dialogMode === 'add') {
+      if (!addNewProfile(initNewProfile(profileName))) {
+        dialogError = LEditProfileFailedMsg;
+        return;
+      }
+      setCurrentProfileName(profileName);
+      closeProfileDialog();
+      return;
+    }
+
+    if (updateProfileCharacterName(profileName) === false) {
+      dialogError = LEditProfileFailedMsg;
+      return;
+    }
+    setCurrentProfileName(profileName);
+    closeProfileDialog();
+  }
+
+  function exportCurrentProfile() {
+    const jsonStr = bigIntSerializer.stringify(getProfile(currentProfileName.current));
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${currentProfileName.current}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function importProfileFromJson() {
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.json';
+
+    fileInput.addEventListener('change', (event) => {
+      const target = event.target as HTMLInputElement;
+      const file = target.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data: CharacterProfile = bigIntSerializer.parse(e.target?.result as string);
+          migrateProfile(data);
+          if (addNewProfile(data)) {
+            currentProfileName.current = data.characterName;
+          } else {
+            toast.push(LImportProfileFailedMsgDuplicated);
+          }
+        } catch {
+          toast.push(LImportProfileFailedMsgWrongFormat);
+        }
+      };
+      reader.readAsText(file);
+      fileInput.remove();
+    });
+    fileInput.click();
+  }
 </script>
 
 <div class="root">
-  <div class="title">👤 {LTitle}</div>
+  <div class="title">{LTitle}</div>
   <div class="buttons">
     {#each appConfig.current.characterProfiles as profile}
       <button
+        type="button"
         class="profile-select-button"
         onclick={() => setCurrentProfileName(profile.characterName)}
         class:active={profile.characterName === currentProfileName.current}
@@ -148,103 +280,77 @@
       </button>
     {/each}
     <button
+      type="button"
       title={LNewProfile}
       aria-label={LNewProfile}
-      onclick={() => {
-        const profileName = window.prompt(LAddNewProfile);
-        if (profileName === null || profileName.length == 0) return;
-        addNewProfile(initNewProfile(profileName));
-        setCurrentProfileName(profileName);
-      }}
+      onclick={() => openProfileDialog('add')}
       data-track="add-profile">➕</button
     >
     <button
+      type="button"
       title={LEditProfile}
       aria-label={LEditProfile}
       disabled={currentProfileName.current === DEFAULT_PROFILE_NAME}
-      onclick={() => {
-        const profileName = window.prompt(LEditProfileMsg)?.trim();
-        if (profileName === undefined || profileName.length == 0) return;
-        if (updateProfileCharacterName(profileName) === false) {
-          window.alert(LEditProfileFailedMsg);
-          return;
-        }
-        setCurrentProfileName(profileName);
-      }}>✏️</button
+      onclick={() => openProfileDialog('rename')}>✏️</button
     >
     <button
+      type="button"
       title={LDeleteProfile}
       aria-label={LDeleteProfile}
-      onclick={() => {
-        if (window.confirm(LConfirmDeleteProfile[locale](currentProfileName.current))) {
-          deleteProfile(currentProfileName.current);
-        }
-      }}
+      onclick={() => openProfileDialog('delete')}
       disabled={currentProfileName.current === DEFAULT_PROFILE_NAME}>🗑️</button
     >
     <button
+      type="button"
       title={LExportProfile}
       aria-label={LExportProfile}
       disabled={currentProfileName.current === DEFAULT_PROFILE_NAME}
-      onclick={() => {
-        const jsonStr = bigIntSerializer.stringify(getProfile(currentProfileName.current));
-
-        // 2. Blob 생성
-        const blob = new Blob([jsonStr], { type: 'application/json' });
-
-        // 3. 다운로드 링크 생성
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${currentProfileName.current}.json`;
-        document.body.appendChild(a);
-        a.click();
-
-        // 4. 정리
-        a.remove();
-        URL.revokeObjectURL(url);
-      }}>💾</button
+      onclick={exportCurrentProfile}>💾</button
     >
     <button
+      type="button"
       title={LImportProfile}
       aria-label={LImportProfile}
-      onclick={() => {
-        const fileInput = document.createElement('input');
-        fileInput.type = 'file';
-        fileInput.accept = '.json'; // JSON만 선택 가능
-
-        // 2. 파일 선택 후 처리
-        fileInput.addEventListener('change', (event) => {
-          const target = event.target as HTMLInputElement; // 여기서 단언
-          const file = target.files?.[0]; // optional chaining 안전하게
-          if (!file) return;
-
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            try {
-              const data: CharacterProfile = bigIntSerializer.parse(e.target?.result as string);
-              migrateProfile(data);
-              if (addNewProfile(data)) {
-                currentProfileName.current = data.characterName;
-              } else {
-                alert(LImportProfileFailedMsgDuplicated);
-              }
-            } catch (err) {
-              alert(LImportProfileFailedMsgWrongFormat);
-            }
-          };
-          reader.readAsText(file);
-          // 3. input 제거
-          fileInput.remove();
-        });
-        // 4. 클릭해서 파일 선택 창 열기
-        fileInput.click();
-      }}
+      onclick={importProfileFromJson}
     >
       📂
     </button>
   </div>
 </div>
+
+<dialog
+  class="profile-dialog"
+  bind:this={profileDialog}
+  aria-labelledby="profile-dialog-title"
+  onclose={handleDialogClose}
+  onclick={(event) => {
+    if (event.target === profileDialog) closeProfileDialog();
+  }}
+>
+  {#if dialogMode}
+    <form class="profile-dialog__form" onsubmit={submitProfileDialog}>
+      <h2 id="profile-dialog-title">{dialogTitle}</h2>
+      <p class="profile-dialog__copy">{dialogDescription}</p>
+      {#if dialogMode !== 'delete'}
+        <label class="profile-dialog__field" for={nameInputId}>{LTitle}</label>
+        <input
+          id={nameInputId}
+          bind:value={nameInput}
+          maxlength="16"
+          autocomplete="off"
+          aria-invalid={dialogError ? 'true' : 'false'}
+        />
+      {/if}
+      {#if dialogError}
+        <p class="profile-dialog__error" role="alert">{dialogError}</p>
+      {/if}
+      <div class="profile-dialog__actions">
+        <button type="button" onclick={closeProfileDialog}>{LCancel[locale]}</button>
+        <button type="submit">{LConfirm[locale]}</button>
+      </div>
+    </form>
+  {/if}
+</dialog>
 
 <style>
   .root {
@@ -288,5 +394,58 @@
     background-color: var(--card-inner);
     font-weight: bold;
     border: 2px solid;
+  }
+
+  .profile-dialog {
+    width: min(22rem, calc(100vw - 2rem));
+    padding: 1rem;
+    border: 1px solid var(--reference-border, var(--border));
+    border-radius: 0.75rem;
+    background: var(--reference-card, var(--card));
+    color: var(--text);
+  }
+
+  .profile-dialog__form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+  }
+
+  .profile-dialog__form h2 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 800;
+  }
+
+  .profile-dialog__copy,
+  .profile-dialog__error {
+    margin: 0;
+    font-size: 0.88rem;
+    line-height: 1.4;
+  }
+
+  .profile-dialog__copy {
+    color: var(--subtle-text);
+  }
+
+  .profile-dialog__error {
+    color: var(--reference-danger);
+  }
+
+  .profile-dialog__field {
+    font-size: 0.82rem;
+    font-weight: 700;
+  }
+
+  .profile-dialog__form input {
+    min-height: 2.4rem;
+    padding: 0.45rem 0.65rem;
+    border-radius: 0.5rem;
+  }
+
+  .profile-dialog__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
   }
 </style>

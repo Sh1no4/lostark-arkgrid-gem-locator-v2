@@ -27,9 +27,9 @@
   let locale = $derived(appLocale.current);
   const LTitle = $derived(
     {
-      ko_kr: '최적화 설정',
-      en_us: 'Optimization Settings',
-      zh_cn: '优化设置',
+      ko_kr: '3. 최적화 설정',
+      en_us: '3. Optimization Settings',
+      zh_cn: '3. 优化设置',
     }[locale]
   );
   const LSubtitle = $derived(
@@ -391,12 +391,13 @@
         <button
           type="button"
           class="tooltip-trigger"
-          aria-label={LOptimizeHint}
-          aria-describedby={optimizeTooltipId}
+          popovertarget={optimizeTooltipId}
+          aria-haspopup="dialog"
+          aria-label={LOptimizeTooltip}
         >
           <i class="fa-solid fa-circle-info info-icon" aria-hidden="true"></i>
         </button>
-        <span id={optimizeTooltipId} class="tooltip-text">{LOptimizeTooltip}</span>
+        <div id={optimizeTooltipId} class="tooltip-text" popover="auto">{LOptimizeTooltip}</div>
       </span>
     </div>
     {#if solveProgress || progressLog.length > 0}
@@ -489,40 +490,6 @@
     display: flex;
     align-items: center;
     gap: 0.3rem;
-  }
-  .tooltip {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-  }
-  .info-icon {
-    cursor: help;
-    opacity: 0.75;
-  }
-  .tooltip-text {
-    visibility: hidden;
-    opacity: 0;
-    width: min(28rem, 80vw);
-    background: var(--reference-card, var(--card));
-    color: var(--text);
-    border: 1px solid var(--reference-border, var(--border));
-    border-radius: 0.6rem;
-    padding: 0.75rem;
-    position: absolute;
-    z-index: 10;
-    bottom: 140%;
-    left: 50%;
-    transform: translateX(-50%);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-    line-height: 1.4;
-    transition:
-      opacity 120ms ease-out,
-      visibility 120ms ease-out;
-  }
-  .tooltip:hover .tooltip-text,
-  .tooltip:focus-within .tooltip-text {
-    visibility: visible;
-    opacity: 1;
   }
   .solve-progress {
     box-sizing: border-box;

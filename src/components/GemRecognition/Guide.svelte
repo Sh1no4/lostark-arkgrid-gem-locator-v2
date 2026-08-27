@@ -58,7 +58,6 @@
         <li>마우스가 젬과 상호작용하지 않도록 스크롤 위에 위치시킨 채로 스크롤을 조작해주세요.</li>
         <br />
       </ol>
-      <p>혹은 사이트 하단 카카오톡을 통해 문의 부탁드립니다.</p>
     {/if}{#if locale === 'en_us'}
       <div class="content">
         <p>
@@ -99,7 +98,6 @@
             interact with the astrogems.
           </li>
         </ol>
-        <p>Alternatively, you can contact us via Discord in the site footer.</p>
       </div>
     {/if}{#if locale === 'zh_cn'}
       <div class="content">
@@ -132,7 +130,6 @@
           <li>如果提取区域的部分区域显示为红色，请尝试调高顶部的 "识别公差范围" 滑块。</li>
           <li>滚动时保持鼠标光标位于滚动条上方，以避免与护石交互。</li>
         </ol>
-        <p>或者，您可以通过网站页脚的 Discord 联系我们。</p>
       </div>
     {/if}
   </div>

@@ -7,16 +7,22 @@
 
   let locale = $derived(appLocale.current);
 
+  const LTitle: LocalizationName = {
+    ko_kr: '아크 그리드 전투력 최적화',
+    en_us: 'Ark Grid Combat Power Optimizer',
+    zh_cn: '命运方舟护石优化器',
+  };
+
   const LDarkMode: LocalizationName = {
     ko_kr: '다크 모드',
     en_us: 'Dark Mode',
     zh_cn: '暗黑模式',
   };
 
-  const LSimulator: LocalizationName = {
-    ko_kr: '시뮬레이터',
-    en_us: 'Simulator',
-    zh_cn: '模拟器',
+  const LLocaleName: LocalizationName = {
+    ko_kr: '한국어',
+    en_us: 'English',
+    zh_cn: '中文',
   };
 
   const LToggleLocale: LocalizationName = {
@@ -29,7 +35,7 @@
 <div class="app-toolbar">
   <div class="app-toolbar__brand">
     <div class="app-toolbar__name">Arkgrid</div>
-    <div class="app-toolbar__section">{LSimulator[locale]}</div>
+    <h1 class="app-toolbar__product">{LTitle[locale]}</h1>
   </div>
   <div class="app-toolbar__controls">
     <ProfileEdit></ProfileEdit>
@@ -37,6 +43,7 @@
       >开发者模式 {appConfig.current.uiConfig.debugMode ? '关闭' : '开启'}</button
     >
     <button
+      type="button"
       onclick={toggleDarkMode}
       aria-pressed={appConfig.current.uiConfig.darkMode}
       aria-label={LDarkMode[locale]}
@@ -48,8 +55,10 @@
         class:fa-toggle-off={!appConfig.current.uiConfig.darkMode}
       ></i>
     </button>
-    <button onclick={toggleLocale} aria-label={`${LToggleLocale[locale]}: ${locale}`}
-      >Locale {locale}</button
+    <button
+      type="button"
+      onclick={toggleLocale}
+      aria-label={`${LToggleLocale[locale]}: ${LLocaleName[locale]}`}>{LLocaleName[locale]}</button
     >
   </div>
 </div>
@@ -66,8 +75,9 @@
 
   .app-toolbar__brand {
     display: flex;
-    align-items: center;
+    align-items: baseline;
     gap: 0.8rem;
+    min-width: 0;
     font-weight: 800;
   }
 
@@ -76,12 +86,14 @@
     letter-spacing: -0.03em;
   }
 
-  .app-toolbar__section {
-    padding: 0.4rem 0.65rem;
-    border-radius: 999px;
-    color: var(--primary);
-    background: color-mix(in srgb, var(--primary) 10%, transparent);
-    font-size: 0.9rem;
+  .app-toolbar__product {
+    margin: 0;
+    min-width: 0;
+    color: var(--subtle-text);
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    overflow-wrap: anywhere;
   }
 
   .app-toolbar__controls {

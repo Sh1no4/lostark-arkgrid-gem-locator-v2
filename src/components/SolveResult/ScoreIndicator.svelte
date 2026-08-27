@@ -101,14 +101,15 @@
         <button
           type="button"
           class="tooltip-trigger"
-          aria-label={LCurrent}
-          aria-describedby={currentScoreTooltipId}
+          popovertarget={currentScoreTooltipId}
+          aria-haspopup="dialog"
+          aria-label={LCurrentDesc}
         >
           <i class="fa-solid fa-circle-info info-icon" aria-hidden="true"></i>
         </button>
-        <span id={currentScoreTooltipId} class="tooltip-text">
+        <div id={currentScoreTooltipId} class="tooltip-text" popover="auto">
           {LCurrentDesc}
-        </span>
+        </div>
       </span>
     </div>
 
@@ -121,14 +122,15 @@
         <button
           type="button"
           class="tooltip-trigger"
-          aria-label={LMaximum}
-          aria-describedby={maximumScoreTooltipId}
+          popovertarget={maximumScoreTooltipId}
+          aria-haspopup="dialog"
+          aria-label={LMaxDesc}
         >
           <i class="fa-solid fa-circle-info info-icon" aria-hidden="true"></i>
         </button>
-        <span id={maximumScoreTooltipId} class="tooltip-text">
+        <div id={maximumScoreTooltipId} class="tooltip-text" popover="auto">
           {LMaxDesc}
-        </span>
+        </div>
       </span>
     </div>
   </div>
@@ -139,14 +141,15 @@
       <button
         type="button"
         class="tooltip-trigger"
-        aria-label={LTotalScore}
-        aria-describedby={totalScoreTooltipId}
+        popovertarget={totalScoreTooltipId}
+        aria-haspopup="dialog"
+        aria-label={LTotalScoreDesc}
       >
         <i class="fa-solid fa-circle-info info-icon" aria-hidden="true"></i>
       </button>
-      <span id={totalScoreTooltipId} class="tooltip-text">
+      <div id={totalScoreTooltipId} class="tooltip-text" popover="auto">
         {LTotalScoreDesc}
-      </span>
+      </div>
     </span>
   </div>
 </div>

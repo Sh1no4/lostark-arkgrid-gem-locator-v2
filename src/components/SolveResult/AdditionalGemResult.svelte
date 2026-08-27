@@ -103,12 +103,13 @@
       <button
         type="button"
         class="tooltip-trigger"
-        aria-label={LTitle}
-        aria-describedby={titleTooltipId}
+        popovertarget={titleTooltipId}
+        aria-haspopup="dialog"
+        aria-label={LTitleDesc}
       >
         <i class="fa-solid fa-circle-info info-icon" aria-hidden="true"></i>
       </button>
-      <span id={titleTooltipId} class="tooltip-text">{LTitleDesc}</span>
+      <div id={titleTooltipId} class="tooltip-text" popover="auto">{LTitleDesc}</div>
     </span>
   </div>
   {#each ArkGridAttrs as attr}

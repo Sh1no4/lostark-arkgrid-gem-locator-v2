@@ -1,93 +1,57 @@
 :root {
-  /* tailwindcss */
-  --color-blue-50: oklch(0.97 0.014 254.604);
-  --color-blue-100: oklch(0.932 0.032 255.585);
-  --color-blue-200: oklch(0.882 0.059 254.128);
-  --color-blue-300: oklch(0.809 0.105 251.813);
-  --color-blue-400: oklch(0.707 0.165 254.624);
-  --color-blue-500: oklch(0.623 0.214 259.815);
-  --color-blue-600: oklch(0.546 0.245 262.881);
-  --color-blue-700: oklch(0.488 0.243 264.376);
-  --color-blue-800: oklch(0.424 0.199 265.638);
-  --color-blue-900: oklch(0.379 0.146 265.522);
-  --color-blue-950: oklch(0.282 0.091 267.935);
-
-  --color-gray-50: oklch(0.985 0.002 247.839);
-  --color-gray-100: oklch(0.967 0.003 264.542);
-  --color-gray-200: oklch(0.928 0.006 264.531);
-  --color-gray-300: oklch(0.872 0.01 258.338);
-  --color-gray-400: oklch(0.707 0.022 261.325);
-  --color-gray-500: oklch(0.551 0.027 264.364);
-  --color-gray-600: oklch(0.446 0.03 256.802);
-  --color-gray-700: oklch(0.373 0.034 259.733);
-  --color-gray-800: oklch(0.278 0.033 256.848);
-  --color-gray-900: oklch(0.21 0.034 264.665);
-  --color-gray-950: oklch(0.13 0.028 261.692);
-
-  --color-slate-50: oklch(0.984 0.003 247.858);
-  --color-slate-100: oklch(0.968 0.007 247.896);
-  --color-slate-200: oklch(0.929 0.013 255.508);
-  --color-slate-300: oklch(0.869 0.022 252.894);
-  --color-slate-400: oklch(0.704 0.04 256.788);
-  --color-slate-500: oklch(0.554 0.046 257.417);
-  --color-slate-600: oklch(0.446 0.043 257.281);
-  --color-slate-700: oklch(0.372 0.044 257.287);
-  --color-slate-800: oklch(0.279 0.041 260.031);
-  --color-slate-900: oklch(0.208 0.042 265.755);
-  --color-slate-950: oklch(0.129 0.042 264.695);
-}
-
-:root {
   --global-gap: clamp(1rem, 2vw, 2rem);
-}
+  --radius-sm: 0.45rem;
+  --radius-md: 0.7rem;
+  --radius-lg: 0.95rem;
+  --ease-out: cubic-bezier(0.32, 0.72, 0, 1);
+  --shadow-sm: 0 1px 2px color-mix(in srgb, var(--text) 10%, transparent);
+  --shadow-md: 0 8px 20px color-mix(in srgb, var(--text) 8%, transparent);
 
-/* 다크 모드 */
-:root {
-  --bg: var(--color-slate-50);
-  --anti-bg: var(--color-slate-950);
-  --card: #ffffff;
-  --card-inner: var(--color-slate-50);
-  --border: var(--color-slate-200);
-  --text: var(--color-slate-800);
-  --subtle-text: var(--color-slate-500);
-  --muted: var(--color-slate-100);
-  --primary: #b45f19;
-  --title-shadow: var(--color-slate-100);
-  --reference-bg: #f6f1ea;
-  --reference-shell: #fbf7f0;
-  --reference-card: #fffdfa;
-  --reference-muted: #f4ece1;
-  --reference-border: #e7d8c6;
-  --reference-accent: #b45f19;
-  --reference-accent-hover: #9f4f10;
-  --reference-focus: #b45f19;
-  --reference-warning: #dba129;
-  --reference-danger: #f04452;
-  --reference-success: #20c46b;
+  --bg: #ece8e1;
+  --anti-bg: #1c1814;
+  --card: #f8f4ee;
+  --card-inner: #f1ebe3;
+  --border: #d7cdbf;
+  --text: #221e19;
+  --subtle-text: #655c52;
+  --muted: #e6dfd4;
+  --primary: #a35b24;
+  --title-shadow: #e6dfd4;
+  --reference-bg: #ece8e1;
+  --reference-shell: #f3efe8;
+  --reference-card: #f8f4ee;
+  --reference-muted: #e6dfd4;
+  --reference-border: #d7cdbf;
+  --reference-accent: #a35b24;
+  --reference-accent-hover: #8d4c1c;
+  --reference-focus: #a35b24;
+  --reference-warning: #c4922e;
+  --reference-danger: #c45b5f;
+  --reference-success: #2f9a63;
 }
 
 :root.dark-mode {
-  --bg: var(--color-slate-950);
-  --anti-bg: var(--color-slate-50);
-  --card: #241d16;
-  --card-inner: #2d241b;
-  --border: #4a3928;
-  --text: #f1e7d8;
-  --subtle-text: #bcae9c;
-  --muted: #34291e;
-  --primary: #d08a3d;
-  --title-shadow: var(--color-slate-950);
-  --reference-bg: #15110d;
-  --reference-shell: #1d1711;
-  --reference-card: #241d16;
-  --reference-muted: #30261c;
-  --reference-border: #4a3928;
-  --reference-accent: #d08a3d;
-  --reference-accent-hover: #e09a4f;
-  --reference-focus: #e09a4f;
-  --reference-warning: #d6a33d;
-  --reference-danger: #f06a73;
-  --reference-success: #39c979;
+  --bg: #14110e;
+  --anti-bg: #f3efe8;
+  --card: #221c16;
+  --card-inner: #2b241c;
+  --border: #3f3428;
+  --text: #efe6d8;
+  --subtle-text: #b3a696;
+  --muted: #2c251e;
+  --primary: #d08942;
+  --title-shadow: #14110e;
+  --reference-bg: #14110e;
+  --reference-shell: #1a1612;
+  --reference-card: #221c16;
+  --reference-muted: #2c251e;
+  --reference-border: #3f3428;
+  --reference-accent: #d08942;
+  --reference-accent-hover: #dea056;
+  --reference-focus: #dea056;
+  --reference-warning: #c9a04a;
+  --reference-danger: #d36b72;
+  --reference-success: #3aaa70;
 }
 
 button,
@@ -111,14 +75,26 @@ button {
 
 dialog {
   color: var(--text);
-  background-color: var(--card);
-  border-radius: 8px;
-  border: 1px var(--border) solid;
+  background-color: var(--reference-card, var(--card));
+  border-radius: var(--radius-md);
+  border: 1px solid var(--reference-border, var(--border));
 }
 
 html {
   font-size: 16px;
   min-width: 360px;
+  scroll-behavior: smooth;
+  font-family:
+    "Segoe UI",
+    "PingFang SC",
+    "Microsoft YaHei UI",
+    "Microsoft YaHei",
+    "Malgun Gothic",
+    "Apple SD Gothic Neo",
+    "Noto Sans SC",
+    "Noto Sans KR",
+    system-ui,
+    sans-serif;
 }
 
 * {
@@ -141,6 +117,7 @@ body {
   max-width: none;
   margin: auto auto;
   user-select: none;
+  font-variant-numeric: tabular-nums;
 }
 
 .panel {
@@ -148,10 +125,10 @@ body {
   box-sizing: border-box;
   height: 100%;
   max-width: 90rem;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 0.4rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  background: var(--reference-card, var(--card));
+  border: 1px solid var(--reference-border, var(--border));
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
 
   /* padding: 내부 요소들이 테두리와 떨어진 거리 */
   padding: clamp(1rem, 2vw, 2rem);
@@ -192,16 +169,25 @@ body {
 button {
   cursor: pointer;
   padding: 0.5rem 0.75rem;
-  border-radius: 0.4rem;
-  border: 1px solid var(--border);
-  font-weight: 500;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--reference-border, var(--border));
+  font-weight: 600;
   word-break: keep-all;
   overflow-wrap: break-word;
   user-select: none;
+  transition:
+    background-color 180ms var(--ease-out),
+    border-color 180ms var(--ease-out),
+    color 180ms var(--ease-out),
+    transform 120ms var(--ease-out);
 }
 
 button:hover {
   background-color: var(--card);
+}
+
+button:active:not(:disabled) {
+  transform: scale(0.98);
 }
 
 button:focus-visible,
@@ -225,8 +211,9 @@ button:disabled {
 }
 
 .panel > .title {
-  font-weight: 700;
-  font-size: 1.4rem;
+  font-weight: 800;
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
 }
 
 .overlay {
@@ -261,9 +248,33 @@ button:disabled {
   border: 0;
 }
 
+.skip-link {
+  position: absolute;
+  left: 0.75rem;
+  top: 0.75rem;
+  z-index: 20;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--reference-border, var(--border));
+  border-radius: var(--radius-sm);
+  background: var(--reference-card, var(--card));
+  color: var(--text);
+  text-decoration: none;
+  transform: translateY(-200%);
+}
+
+.skip-link:focus {
+  transform: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .spinner {
     animation: none;
+  }
+
+  button,
+  button:active:not(:disabled) {
+    transition: none;
+    transform: none;
   }
 
   *,
@@ -303,44 +314,35 @@ input[type='radio']:disabled {
   line-height: 1;
 }
 
-.tooltip-trigger:hover {
+.tooltip-trigger:hover,
+.tooltip-trigger:focus-visible {
   background: color-mix(in srgb, var(--reference-focus, var(--primary)) 12%, transparent);
 }
 
 .tooltip {
   position: relative;
+  display: inline-flex;
+  align-items: center;
 }
 
 .tooltip-text {
-  width: min(17rem, calc(100vw - 2rem));
-  visibility: hidden;
-  opacity: 0;
-  position: absolute;
-  bottom: 125%;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--bg);
+  box-sizing: border-box;
+  width: min(24rem, calc(100vw - 2rem));
+  max-height: min(70dvh, 22rem);
+  overflow: auto;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--reference-border, var(--border));
+  border-radius: var(--radius-md);
+  background: var(--reference-card, var(--card));
   color: var(--text);
-  border: 1px solid var(--border);
-  padding: 0.5rem;
-  border-radius: 6px;
   font-size: 0.9rem;
-
+  font-weight: 500;
+  line-height: 1.5;
   white-space: normal;
   word-break: keep-all;
   overflow-wrap: break-word;
-  transition: opacity 0.2s ease;
-  z-index: 2000;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .tooltip-text {
-    transition: none;
-  }
-}
-
-.tooltip:hover .tooltip-text,
-.tooltip:focus-within .tooltip-text {
-  visibility: visible;
-  opacity: 1;
+.tooltip-text::backdrop {
+  background: color-mix(in srgb, var(--anti-bg) 32%, transparent);
 }
