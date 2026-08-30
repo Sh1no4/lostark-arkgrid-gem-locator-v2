@@ -671,15 +671,23 @@
   </div>
 </div>
 
-<div class="debug-viewer" hidden={!isDebugging}>
+<div
+  class="debug-viewer"
+  hidden={!isDebugging}
+  role="dialog"
+  aria-modal="false"
+  aria-labelledby="debug-viewer-title"
+>
   <div class="debug-viewer__bar">
-    <strong>{LDebugPreview}</strong>
+    <strong id="debug-viewer-title">{LDebugPreview}</strong>
     <div class="debug-viewer__actions">
       <button type="button" onclick={copyDebugFrame}>{LCopyFrame}</button>
       <button type="button" onclick={toggleDrawDebug}>{LHideScreen[locale]}</button>
     </div>
   </div>
-  <canvas bind:this={debugCanvas}></canvas>
+  <div class="debug-viewer__body">
+    <canvas bind:this={debugCanvas}></canvas>
+  </div>
 </div>
 
 <style>
@@ -1081,7 +1089,7 @@
     .debug-viewer {
       right: 0.5rem;
       left: 0.5rem;
-      bottom: 0.5rem;
+      bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
       width: auto;
     }
   }
@@ -1153,7 +1161,7 @@
   .debug-viewer {
     position: fixed;
     right: 1rem;
-    bottom: 1rem;
+    bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
     z-index: 40;
     box-sizing: border-box;
     display: flex;
@@ -1162,6 +1170,7 @@
     width: min(52rem, calc(100vw - 2rem));
     max-height: min(72dvh, 42rem);
     padding: 0.75rem;
+    overflow: hidden;
     border: 1px solid var(--reference-border, var(--border));
     border-radius: var(--radius-md);
     background: var(--reference-card, var(--card));
@@ -1174,6 +1183,7 @@
 
   .debug-viewer__bar {
     display: flex;
+    flex-shrink: 0;
     align-items: center;
     justify-content: space-between;
     gap: 0.75rem;
@@ -1188,6 +1198,12 @@
     display: flex;
     flex-wrap: wrap;
     gap: 0.4rem;
+  }
+
+  .debug-viewer__body {
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
   }
 
   .debug-viewer canvas {

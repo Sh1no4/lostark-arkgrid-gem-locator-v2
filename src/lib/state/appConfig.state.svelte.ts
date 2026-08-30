@@ -80,8 +80,9 @@ function sanitizeCharacterProfiles(value: unknown): CharacterProfile[] {
   const migratedProfiles = value
     .filter(isObjectRecord)
     .map((profile) => {
-      migrateProfile(profile);
-      return profile as CharacterProfile;
+      const candidate = profile as Partial<CharacterProfile>;
+      migrateProfile(candidate);
+      return candidate as CharacterProfile;
     });
 
   return migratedProfiles.length > 0 ? migratedProfiles : [initNewProfile(DEFAULT_PROFILE_NAME)];

@@ -11,6 +11,12 @@ export type MatchingResult<K extends string> = {
   template: CvMat;
 };
 
+function minMaxLoc(src: CvMat): MinMaxLoc {
+  // opencv-js 运行时是 JS API：minMaxLoc(src[, mask]) -> MinMaxLoc
+  // @techstark/opencv-js 的类型却写成了 C++ 输出参数签名
+  return (getCv().minMaxLoc as (mat: CvMat) => MinMaxLoc)(src);
+}
+
 export function getBestMatchAtlas<K extends string>(
   frame: CvMat,
   matchingAtlas: MatchingAtlas<K>,
@@ -27,7 +33,7 @@ export function getBestMatchAtlas<K extends string>(
   const result = new cv.Mat();
   try {
     cv.matchTemplate(frame, atlas, result, cv.TM_CCOEFF_NORMED);
-    const mm = cv.minMaxLoc(result);
+    const mm = minMaxLoc(result);
     for (const key of Object.keys(entries) as K[]) {
       const e = entries[key];
       if (mm.maxLoc.x > e.x && mm.maxLoc.x < e.x + e.width) {
@@ -90,7 +96,7 @@ export function getBestMatch<K extends string>(
       result,
       option?.method ? option.method : cv.TM_CCOEFF_NORMED
     );
-    const mm = cv.minMaxLoc(result);
+    const mm = minMaxLoc(result);
     if (!bestMm || mm.maxVal > bestMm.maxVal) {
       bestMm = mm;
       bestKey = key;
@@ -120,7 +126,7 @@ export function findLocation(frame: CvMat, template: CvMat, roi?: CvRect) {
   const result = new cv.Mat();
   try {
     cv.matchTemplate(targetFrame, template, result, cv.TM_CCOEFF_NORMED);
-    const mm = cv.minMaxLoc(result);
+    const mm = minMaxLoc(result);
 
     return {
       key: '',

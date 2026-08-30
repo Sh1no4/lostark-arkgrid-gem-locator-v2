@@ -238,10 +238,11 @@ function sanitizeCoreRecords(value: unknown): CharacterProfile['cores'] {
         continue;
       }
 
-      defaultCores[attr][ctype] = existingCore as ArkGridCore;
-      if (defaultCores[attr][ctype]?.goalPoint === undefined) {
-        defaultCores[attr][ctype].goalPoint = 0;
+      const core = existingCore as unknown as ArkGridCore;
+      if (core.goalPoint === undefined) {
+        core.goalPoint = 0;
       }
+      defaultCores[attr][ctype] = core;
     }
   }
 
@@ -340,11 +341,12 @@ export function deleteProfile(name: string) {
 
 export function updateProfileCharacterName(name: string) {
   // 현재 프로필의 이름을 수정합니다.
+  const profile = getCurrentProfile();
+  if (profile.characterName === name) return;
   const existProfile = appConfig.current.characterProfiles.findIndex(
     (p) => p.characterName === name
   );
-  if (existProfile != -1) return false;
-  const profile = getCurrentProfile();
+  if (existProfile !== -1) return false;
   profile.characterName = name;
 }
 
